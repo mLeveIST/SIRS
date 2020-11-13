@@ -22,153 +22,123 @@ These are considered to be the three main points where security problems may ari
 ### 1.1. Requirements
 
 - Authenticity, Integrity, Confidentiality and Freshness in communications between all parties;
-- Client group key generation and sharing;
+- Client side file encryption;
 - Recovery from ransomware attacks to the shared documents;
 
 ### 1.2. Trust Assumptions
 
 - We won't trust users if they don’t have the correct permissions for a specified document or whose requests don’t assure authenticity, integrity, confidentiality and freshness;
-- We won’t trust anyone with physical access to the servers in terms of both read access and write access;
-- We will trust that the servers won’t become unavailable, due to malfunction or denial of service.
-- We will trust that there will be no malicious physical access to the backup servers.
+- We won’t trust anyone with physical access to the file server in terms of both read access and write access;
+- We will trust that the servers won’t become unavailable, due to malfunction or denial of service;
+- We will trust that there will be no malicious physical access to the backup servers or logs server;
 
 ## 2. Proposed Solution
 
 ### 2.1. Overview
 
-The solution will follow the diagram below in terms of structure:
+The solution will follow the diagram below in terms of system structure:
 
-![](/images/SIRS_structure_diagram.png)
+![](/images/SIRS_IT_diagram.png)
 
-We will fork the NextCloud open source project and implement the following security features on top of the file sharing functionalities:
+We will implement the file sharing system ourselves. The Django REST Framework python package will be used for realizing the database, application server-side and client-side, and for the comunnications between machines. Naturaly, TLS will be used in all these communications. The application will use the rsync command to syncronize files between parties.
 
-- TLS will be used in all communications between Clients and the File Server for accessing files, and between File Server and Backup Server to preform backups or recover files;
-- The main File Server and the Backup Servers will all be in separate private networks
-- The File Server files will be stored encrypted. The encryption will be made by the Client
-Group (using PGP & Diffie-Hellman) that has access to the file;
-- We will protect the system from ransomware with redundancy, by having a 3-2 system, 3
-servers/databases, 2 of them for backups online in different networks;
+The File Server files will be stored encrypted. The encryption will be made by the Client Group that has access to the file, using the PGP protocol. To use the system, clients will need to register themselves through the Logs Server.
+
+We will protect the system from ransomware using a custom made protocol, which we will call Ransomware Recovery Protocol (RRP) that will work in two phases:
+  - Detection, where illegal changes to files are detected using a log system stored in the Logs Server;
+  - Recovery, that will use redundancy by having the infrastructure setup in a 3-2 system way: 3 servers/databases, 2 of them for backups online, all of them in different private networks;
 
 ### 2.2. Deployment
 
-VirtualBox will be used to deploy each machine as a VM:
+VirtualBox will be used to deploy each machine in the system as a VM:
 
-- The File Server machine will manage all files and users;
-- Two other servers, in different networks, that will serve as backup servers for the main
-server machine;
-- Four Client machines that will connect to the main server;
-- Three Client machines accessing files, two of them sharing;
-- One client machine performing attacks (connections and ransomware);
+- The File Server machine will store and manage all files;
+- The Logs Server machine will act as the entryway to the FS network. It will be split into:
+  - A user registry system;
+  - A log system for every file update;
+- The Backup Server 1 and 2 will serve as backup servers for the files in the File Server machine;
+- Four Client machines that will connect to the main server:
+  - Three Client machines accessing files, two of them sharing;
+  - One Client machine performing attacks (communications and ransomware);
 
 ### 2.3. ​Secure channel(s) to configure
 
-The communication between the file server and the clients will be made using TLS (HTTPS), therefore, there will exist a certificate for the server (public and private keys).
+Communication between machines will be made using TLS (HTTPS). Therefore, there will exist a certificate for all of them (public and private keys).
 
 ### 2.4. ​Secure protocol(s) to develop
 
-#### 2.4.1. Group Diffie-Hellman (Station-to-Station)
+### 2.4.1. PGP Protocol
 
-- Used for generating a shared group key between all users with read/write permissions to a certain file
-- There is PFS between shared files, but not in different accesses to the same file
-- To guarantee authentication between communications, the Station-to-Station variant will be used
-  OR
-- Use TLS for authentication
+- Used to encrypt files, so they can be securely stored at the File Server;
+- Used to decrypt files that a client has access to (decryption at client side);
+- Files are sent using TLS;
 
-##### Protocol Specification
+#### Protocol Specification
 
-- Number of client participants does not have a hard limit
-- Exchange of intermidiate values can be done on the open
-- A circular approach would entail:
-  - Number of exchanges: O(N^2)
-  - Number of exponentiations: O(N^2)
-- The Divide-and-Conquer approach defined bellow will require:
-  - Number of exchanges: O(N)
-  - Number of exponentiations: O(Nlog2(N))
-
-Given:
-- 4 clients A, B, C and D
-- Client A created a file F, and choose to share it with B, C and D
-
-1. Define protocol parameters:
-  - A will generate a prime modulus (p) and a generator (g)
-  - All clients will generate random private numbers (a), (b), (c) and (d)
-  - A will send p and g to B, C and D
-  - A will also send client group partition rules
-
-2. Key intermidiate values exchange:
-  - Split clients in two groups of equal size G1 = (A, B) and G2 = (C, D)
-
-  - A will compute g^a mod p and send it to B
-  - C will compute g^c mod p and send it to D
-
-  - B will compute g^ab mod p and send it to C and D (partion of G2 into G21 = (C) and G22 = (D))
-  - D will compute g^cd mod p and send it to A and B (partion of G1 into G11 = (A) and G12 = (B))
-
-  - A will compute g^cda mod p and send it to B
-  - B will compute g^cdb mod p and send it to A
-  - C will compute g^abc mod p and send it to D
-  - D will compute g^abd mod p and send it to C
-
-3. Group key calculation:
-  - A will compute K = g^cdba mod p
-  - B will compute K = g^cdab mod p
-  - C will compute K = g^abdc mod p
-  - D will compute K = g^abcd mod p
-
-#### 2.4.2. PGP using DH group key
-
-- Used to encrypt files so they can be sent and stored with security on the server
-- Used to decrypt files that a client has access to (at client side)
-- Can be used only after file premissions setup is concluded (group key (K) already generated)
-- Files are sent using TLS
-
-##### Protocol Specification
-
-The following diagram specidies how the protocol will work:
+The following diagram specifies how the protocol will work:
 
 ![](/images/SIRS_PGP_diagram.png)
 
+Where N is the number of clients that share file P
+
 1. Encryption:
   - Client generates a random key (KR) and encrypts file P with it using AES, producing C;
-  - Client encrypts KR with shared group key KG using AES, producing CK;
-  - Client sends C and CK to the server over TLS;
+  - Client encrypts KR N times with the other N file contributers public keys, producing CK1 to CKN;
+  - Client sends C and CK1 to CKN to the server over TLS;
 
-#### 2.4.3. Storage Integrity (much to do)
+2. Decryption:
+  - Client receives C and CK;
+  - Client decrypts CK using its private key, producing key KR;
+  - Client decrypts C using KR, producing file P;
 
+### 2.4.3. RRP Protocol
+
+- Used to detect data integrity attacks to the files at the File Server, by using a log system;
+- Used to recover from data integrity attacks by use of redundancy, using backups (3-2 rule);
+- Communications use TLS;
+
+#### Protocol Specification (TODO)
+
+The following diagram specifies how the protocol will work: (TODO)
+
+(TODO)
+
+```
 The main server will occasionally communicate with backup servers to perform backups of the file system, or to recover from a possible attack to the files.
 
 We will use the following languages:
-- Python
-- Javascript​
-- P​HP
+- Python;
 
 What keys will exist and how will they be distributed?
 - Each user will have its own pair of RSA keys. The server will store the public key of each user, which will be transferred by https in the user registration.
-- For each file there will be a generated client group key to be distributed using PGP & Diffie-Hellman;
 - For each communication between backup server and the file server an AES key will be generated, therefore the main server will have an RSA key pair.
+```
 
 ## 3. Plan
 
 ### 3.1. Versions
 
-- **Basic**​ - Add secure communication between machines configuring TLS for client - server and server - backup communications (Based on 3-2 backup rule). Files are stored in plain text.
+- **Basic**​ - Setup infrastucture and add secure communication between machines, configuring TLS for all communications. Files are stored in plain text.
 - **Intermediate**​ - Add PGP protocol at client side for file encryption and storage at server.
-- **Advanced**​ - Add Diffie-Hellman protocol on top of PGP for client group key sharing.
+- **Advanced**​ - Add RRP protocol for ransomware detection and recovery.
 
 ### 3.1. Effort Commitments
 
 | Semanas       | Manuel Mascarenhas             | Miguel Levezinho               | Ricardo Fernandes               |
 | :------------ | :----------------------------- | :----------------------------- | :------------------------------ |
 | Nov 02-08     | Custom Protocol Design         | Custom Protocol Design         | Custom Protocol Design          |
-| Nov 09-15     | NextCloud Server Configuration | NextCloud Server Configuration | NextCloud Server Configuration  |
-| Nov 16-22     | NextCloud Server Configuration | Configure Infrastructure       | Configure TLS for communication |
+| Nov 09-15     | Django System Configuration    | Django System Configuration    | Django System Configuration     |
+| Nov 16-22     | Configure Infrastructure       | Configure Infrastructure       | Configure TLS for communication |
 | Nov 23-29     | Implement PGP protocol         | Implement PGP protocol         | Configure TLS for communication |
-| Nov/Dec 30-06 | Implement PGP protocol         | Implement Group DH protocol    | Implement PGP protocol          |
-| Dec 07-12     | Implement Group DH protocol    | Implement Group DH protocol    | Implement Group DH protocol     |
+| Nov/Dec 30-06 | Implement RRP protocol         | Implement RRP protocol         | Implement RRP protocol          |
+| Dec 07-12     | Implement RRP protocol         | Implement RRP protocol         | Implement RRP protocol          |
 
 ## 4. References
 
-NextCloud​, ​Apache,​ P​GP​, ​Diffie-Hellman
+[Django](https://www.djangoproject.com/)
+[Django REST Framework](https://www.django-rest-framework.org/)
+[PGP](https://en.wikipedia.org/wiki/Pretty_Good_Privacy)
+[3-2-1 Backup Stategy for ransomeware](https://www.titanhq.com/blog/ransomware-protection-why-the-3-2-1-backup-strategy-works/)
 
 
 
