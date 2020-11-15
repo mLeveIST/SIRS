@@ -9,6 +9,11 @@ from .models import User
 from .serializers import RegisterSerializer
 
 
+@api_view(['GET'])
+def get_files():
+    return
+
+
 @api_view(['POST'])
 def register(request):
     data = {}

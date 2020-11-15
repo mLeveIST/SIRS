@@ -1,22 +1,20 @@
 from django.db import models
-
-
-# For user and auth
-from server import settings
+from django.conf import settings
 from django.dispatch import receiver
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.db.models.signals import post_save
 from rest_framework.authtoken.models import Token
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 
 # Create your models here.
 
 
-class File(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=False)
-    data = models.FileField()
-    sign = models.BinaryField()
+class Log(models.Model):
+    ts = models.DateTimeField()  # is this the version ?
+    # File ID ?
+    # User ID ?
+    # Need to talk about the sign/digest
+    # More fields ?
 
-
-# User and auth models
 
 class UserManager(BaseUserManager):
     def create_user(self, username, password=None):
