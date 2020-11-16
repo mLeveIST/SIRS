@@ -11,11 +11,10 @@ from rest_framework.authtoken.models import Token
 
 
 class File(models.Model):
-    log_id = models.IntegerField()  # Unique ?
-    data = models.FileField()
+    path = models.FileField()
 
 
 class Key(models.Model):
     owner_id = models.IntegerField()
     file = models.ForeignKey(File, on_delete=models.CASCADE)
-    key = models.BinaryField()
+    value = models.BinaryField()

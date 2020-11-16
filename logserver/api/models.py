@@ -8,14 +8,6 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 # Create your models here.
 
 
-class Log(models.Model):
-    ts = models.DateTimeField()  # is this the version ?
-    # File ID ?
-    # User ID ?
-    # Need to talk about the sign/digest
-    # More fields ?
-
-
 class UserManager(BaseUserManager):
     def create_user(self, username, password=None):
         user = self.model(username=username)
@@ -25,7 +17,8 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser):
-    username = models.CharField(blank=False, max_length=64)
+    username = models.CharField(max_length=64)
+    pubkey = models.BinaryField()
     is_active = models.BooleanField(default=True)
 
     USERNAME_FIELD = 'username'
@@ -37,3 +30,10 @@ class User(AbstractBaseUser):
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
         Token.objects.create(user=instance)
+
+
+class Log(models.Model):
+    file_id = models.IntegerField(unique=True)
+    user = models.ForeignKey(User)
+    ts = models.DateTimeField()
+    sign = models.BinaryField()
