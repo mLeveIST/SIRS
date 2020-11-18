@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User
+from .models import User, Log
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -11,7 +11,14 @@ class RegisterSerializer(serializers.ModelSerializer):
     def save(self):
         user = User(
             name=self.validated_data['username'],
+            pubkey=self.validated_data['pubkey'],
         )
         user.set_password(self.validated_data['password'])
         user.save()
         return user
+
+
+class LogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Log
+        fields = ['file_id', 'user', 'ts', 'sign']

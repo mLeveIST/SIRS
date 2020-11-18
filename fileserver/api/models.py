@@ -6,12 +6,13 @@ from fileserver import settings
 from django.dispatch import receiver
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from rest_framework.authtoken.models import Token
+from django.core.files.storage import FileSystemStorage
 
-# Other models
+file_storage = FileSystemStorage(location='/files')
 
 
 class File(models.Model):
-    path = models.FileField()
+    file = models.FileField(storage=file_storage)
 
 
 class Key(models.Model):
