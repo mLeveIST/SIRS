@@ -10,7 +10,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def save(self):
         user = User(
-            name=self.validated_data['username'],
+            username=self.validated_data['username'],
             pubkey=self.validated_data['pubkey'],
         )
         user.set_password(self.validated_data['password'])

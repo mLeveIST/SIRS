@@ -23,7 +23,7 @@ def upload_file(request):
     if not user.is_authenticated:
         raise PermissionDenied("You need to be authenticated to upload a file")
 
-    r = requests.post(FILESERVER_URL + "user/{0}/file".format(user.id),
+    r = requests.post(FILESERVER_URL + "user/{0}/file/".format(user.id),
                       files=request.FILES, data={'key': request.data["key"]})
 
     if r.status_code < 200 or r.status_code >= 300:
@@ -56,25 +56,14 @@ def register(request):
     token = Token.objects.get(user=user)
 
     data['response'] = 'successfully registered a new user'
-    data['email'] = user.email
     data['token'] = token.key
     return Response(data, status=status.HTTP_201_CREATED)
 
 
 class LoginClass(ObtainAuthToken):
     def post(self, request):
-        data = {'password': request.data['password']}
-
-        if request.data.get('email'):
-            data['username'] = request.data['email']
-        elif request.data.get('phone'):
-            data['username'] = User.objects.get(
-                phone=request.data.get('phone')).email
-        else:
-            return Response({'response': 'error: please introduce a valid email or a phone'}, status=status.HTTP_400_BAD_REQUEST)
-
         serializer = self.serializer_class(
-            data=data, context={'request': request})
+            data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data.get('user')
         token, _ = Token.objects.get_or_create(user=user)
