@@ -50,7 +50,7 @@ Receives a *file ID* and a list of *usernames*.
 Receives the *user ID*, *encrypted file*, a list of *encrypted keys* to the file and a *list of user IDs* that can contribute to the file.
 Returns the new *file ID*.
 
-- `update_file`: Updates a file in the system.
+- `update_file`: Updates a file in the system.<br>
 Receives the *user ID*, the *file ID*, the *encrypted file* and a list of *encrypted keys* to the file.
 
 - `get_file`: Retrieves a file in the system.
@@ -63,6 +63,7 @@ Receives a *Backup Server ID*.
 ### Services to Backup Servers
 
 - `get_data`: Retrieves all the data stored in the Files Server.
+Returns the stored data.
 
 ## Backup Servers
 
