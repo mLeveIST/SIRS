@@ -9,16 +9,16 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, username, password=None):
-        user = self.model(username=username)
+    def create_user(self, username, pubkey, password=None):
+        user = self.model(username=username, pubkey=pubkey)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
 
 class User(AbstractBaseUser):
-    username = models.CharField(max_length=64)
-    pubkey = models.BinaryField()
+    username = models.CharField(max_length=64, unique=True)
+    pubkey = models.CharField(max_length=64)
     is_active = models.BooleanField(default=True)
 
     USERNAME_FIELD = 'username'
@@ -34,6 +34,6 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
 
 class Log(models.Model):
     file_id = models.IntegerField(unique=True)
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     ts = models.DateTimeField()
     sign = models.BinaryField()

@@ -18,6 +18,6 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # path('/files', views.get_files),
+    path('user/<int:user_id>/file/', views.upload_file),
 
 ]

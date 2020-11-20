@@ -12,3 +12,10 @@ Vagrantfile(libvirt)
 *.log
 control/id_rsa
 control/id_rsa.pub
+
+# Django
+db.sqlite3
+
+# Temporary
+migrations/
+
