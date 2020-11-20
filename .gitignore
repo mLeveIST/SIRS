@@ -9,3 +9,6 @@ __pycache__/
 # Vagrant
 .vagrant/*
 Vagrantfile(libvirt)
+*.log
+control/id_rsa
+control/id_rsa.pub

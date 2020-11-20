@@ -1,0 +1,18 @@
+- hosts: all
+  become: yes
+  become_method: sudo
+  gather_facts: no
+
+  tasks:
+    - name: install all packages
+      apt:
+        pkg: [python3, python3-pip, apache2]
+        state: latest
+        update_cache: yes
+
+    - name: pip install requirements
+      shell:
+        cmd: pip3 install -r /vagrant/control/requirements.txt
+
+    - name: Upgrade all apt packages
+      apt: upgrade=dist force_apt_get=yes

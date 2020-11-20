@@ -2,11 +2,28 @@
 
 sudo apt-get update
 sudo ln -sf /usr/share/zoneinfo/UTC /etc/localtime
-# install ansible (http://docs.ansible.com/intro_installation.html)
+# install tools for managing ppa repositories
 sudo apt-get -y install software-properties-common
+sudo apt-get -y install unzip
+sudo apt-get -y install build-essential 
+sudo apt-get -y libssl-dev 
+sudo apt-get -y libffi-dev 
+sudo apt-get -y python-dev 
+sudo apt-get -y python-pip 
+sudo apt-get -y python3-pip
+
+# Add graph builder tool for Terraform
+sudo apt-get -y install graphviz
+
+# install ansible (http://docs.ansible.com/intro_installation.html)
 apt-add-repository -y ppa:ansible/ansible
 sudo apt-get update
 sudo apt-get -y install ansible
+
+sudo apt-get update && sudo apt-get upgrade -y
+
+# install key
+cat /vagrant/control/id_rsa.pub >> /home/vagrant/.ssh/authorized_keys
 
 # configure hosts file for the internal network defined by Vagrantfile
 cat >> /etc/hosts <<EOL
