@@ -23,4 +23,6 @@ urlpatterns = [
 
     path('file/', views.upload_file),
     path('file/<int:file_id>/', views.get_file),
+
+    path('user/<str:username>/pubkey/', views.get_pubkey),
 ]

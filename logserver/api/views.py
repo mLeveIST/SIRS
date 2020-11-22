@@ -10,11 +10,18 @@ from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 
 from .models import User
-from .serializers import RegisterSerializer, LogSerializer
+from .serializers import RegisterSerializer, LogSerializer, PubkeySerializer
 
 FILESERVER_URL = "http://localhost:8001/api/"
 
 # Create your views here.
+
+
+@api_view(['GET'])
+def get_pubkey(request, username):
+    user = User.objects.get(username=username)
+    serial = PubkeySerializer(user)
+    return Response(serial.data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
