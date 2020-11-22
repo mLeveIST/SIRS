@@ -15,6 +15,15 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
+    def create_superuser(self, username, password):
+        user = self.create_user(
+            username=username,
+            password=password,
+            pubkey='this is a superuser key'
+        )
+        user.save(using=self._db)
+        return user
+
 
 class User(AbstractBaseUser):
     username = models.CharField(max_length=64, unique=True)
@@ -36,4 +45,4 @@ class Log(models.Model):
     file_id = models.IntegerField(unique=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     ts = models.DateTimeField()
-    sign = models.BinaryField()
+    sign = models.CharField(max_length=64)

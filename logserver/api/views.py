@@ -1,9 +1,9 @@
 import requests
+from logserver import utils
 from datetime import datetime
 
 from rest_framework import status
 from django.shortcuts import render
-from django.core.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
@@ -17,13 +17,23 @@ FILESERVER_URL = "http://localhost:8001/api/"
 # Create your views here.
 
 
+@api_view(['GET'])
+def get_file(request, file_id):
+    user = utils.authenticated_user(request)
+
+    r = requests.get(FILESERVER_URL + "user/{}/file/{}".format(user.id, file_id))
+
+    if r.status_code < 200 or r.status_code >= 300:
+        return Response(r.content, status=r.status_code)
+
+    return utils.requests_to_django(r)
+
+
 @api_view(['POST'])
 def upload_file(request):
-    user = request.user
-    if not user.is_authenticated:
-        raise PermissionDenied("You need to be authenticated to upload a file")
+    user = utils.authenticated_user(request)
 
-    r = requests.post(FILESERVER_URL + "user/{0}/file/".format(user.id),
+    r = requests.post(FILESERVER_URL + "user/{}/file/".format(user.id),
                       files=request.FILES, data={'key': request.data["key"]})
 
     if r.status_code < 200 or r.status_code >= 300:
@@ -31,7 +41,7 @@ def upload_file(request):
 
     log_data = {
         'file_id': r.json()['file_id'],
-        'user': user,
+        'user': user.id,
         'ts': datetime.now(),
         'sign': request.data['sign']
     }
@@ -40,7 +50,7 @@ def upload_file(request):
         return Response(log_serial.errors, status=status.HTTP_400_BAD_REQUEST)
     log = log_serial.save()
 
-    return Response(status=status.HTTP_201_CREATED)
+    return Response({'file_id': log.file_id}, status=status.HTTP_201_CREATED)
 
 
 # Auth views

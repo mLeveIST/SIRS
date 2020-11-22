@@ -22,4 +22,5 @@ urlpatterns = [
     path('user/login/', views.LoginClass.as_view()),
 
     path('file/', views.upload_file),
+    path('file/<int:file_id>/', views.get_file),
 ]

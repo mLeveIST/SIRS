@@ -19,5 +19,5 @@ from . import views
 
 urlpatterns = [
     path('user/<int:user_id>/file/', views.upload_file),
-
+    path('user/<int:user_id>/file/<int:file_id>/', views.download_file),
 ]

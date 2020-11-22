@@ -8,14 +8,12 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from rest_framework.authtoken.models import Token
 from django.core.files.storage import FileSystemStorage
 
-file_storage = FileSystemStorage(location='/files')
-
 
 class File(models.Model):
-    file = models.FileField(storage=file_storage)
+    file = models.FileField(upload_to='%Y%m%d%H%M%S/')
 
 
 class Key(models.Model):
-    owner_id = models.IntegerField()
+    user_id = models.IntegerField()
     file = models.ForeignKey(File, on_delete=models.CASCADE)
-    value = models.BinaryField()
+    value = models.CharField(max_length=64)
