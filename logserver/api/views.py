@@ -24,23 +24,42 @@ def get_pubkey(request, username):
     return Response(serial.data, status=status.HTTP_200_OK)
 
 
-@api_view(['GET'])
-def get_file(request, file_id):
+@api_view(['GET', 'PUT'])
+def file_details(request, file_id):
+    # Includes get a specific file and update a file that already exists
+    # Download or Update a specific file
     user = utils.authenticated_user(request)
+    URL = FILESERVER_URL + "file/{}/user/{}/".format(user.id, file_id)
+    print("ENTROU NO PUT")
 
-    r = requests.get(FILESERVER_URL + "user/{}/file/{}".format(user.id, file_id))
+    if request.method == 'GET':
+        r = requests.get(URL)
+    elif request.method == 'PUT':
+        r = requests.put(URL, files=request.FILES, data={'key': request.data["key"]})
 
     if r.status_code < 200 or r.status_code >= 300:
         return Response(r.content, status=r.status_code)
+
+    if request.method == 'PUT':
+        log_data = {
+            'file_id': file_id,
+            'user': user.id,
+            'ts': datetime.now(),
+            'sign': request.data['sign']
+        }
+        log_serial = LogSerializer(data=log_data)
+        if not log_serial.is_valid():
+            return Response(log_serial.errors, status=status.HTTP_400_BAD_REQUEST)
+        log = log_serial.save()
 
     return utils.requests_to_django(r)
 
 
 @api_view(['POST'])
-def upload_file(request):
+def file_list(request):
     user = utils.authenticated_user(request)
 
-    r = requests.post(FILESERVER_URL + "user/{}/file/".format(user.id),
+    r = requests.post(FILESERVER_URL + "file/user/{}/".format(user.id),
                       files=request.FILES, data={'key': request.data["key"]})
 
     if r.status_code < 200 or r.status_code >= 300:
