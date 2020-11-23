@@ -69,7 +69,7 @@ Vagrant.configure("2") do |config|
       # Assign a friendly name to this host VM
       bs_config.vm.hostname = "bs#{i}"
       # Create a private network, which allows host-only access to the machine
-      bs_config.vm.network "private_network", ip: "192.168.58.1#{i}"
+      bs_config.vm.network "private_network", ip: "192.168.5#{i}.10"
       bs_config.vm.network "forwarded_port", guest: 80, host: 8081 + i
       # Provider-specific configuration so you can fine-tune various
       bs_config.vm.provider "virtualbox" do |vb|
@@ -85,7 +85,7 @@ Vagrant.configure("2") do |config|
 
   # Create an new instance
   # insert your instructions here:
-  (1..1).each do |i|
+  (1..3).each do |i|
     config.vm.define "client#{i}" do |client_config|
         # Every Vagrant development environment requires a box.
         client_config.vm.box = "ubuntu/bionic64"
