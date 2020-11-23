@@ -14,7 +14,9 @@ from .serializers import RegisterSerializer, LogSerializer, PubkeySerializer
 
 FILESERVER_URL = "http://localhost:8001/api/"
 
-# Create your views here.
+# ---------------------------------------- #
+# Services to be called by Client Machines #
+# ---------------------------------------- #
 
 
 @api_view(['GET'])
@@ -33,24 +35,36 @@ def file_details(request, file_id):
     print("ENTROU NO PUT")
 
     if request.method == 'GET':
-        r = requests.get(URL)
+        get_file(request, file_id, URL)
     elif request.method == 'PUT':
-        r = requests.put(URL, files=request.FILES, data={'key': request.data["key"]})
+        upload_file(request, file_id, URL, user)
+        
+
+def get_file(request, file_id, url):
+    r = requests.get(URL)
 
     if r.status_code < 200 or r.status_code >= 300:
         return Response(r.content, status=r.status_code)
 
-    if request.method == 'PUT':
-        log_data = {
-            'file_id': file_id,
-            'user': user.id,
-            'ts': datetime.now(),
-            'sign': request.data['sign']
-        }
-        log_serial = LogSerializer(data=log_data)
-        if not log_serial.is_valid():
-            return Response(log_serial.errors, status=status.HTTP_400_BAD_REQUEST)
-        log = log_serial.save()
+    return utils.requests_to_django(r)
+
+
+def upload_file(request, file_id, url, user):
+    r = requests.put(URL, files=request.FILES, data={'key': request.data["key"]})
+
+    if r.status_code < 200 or r.status_code >= 300:
+        return Response(r.content, status=r.status_code)
+
+    log_data = {
+        'file_id': file_id,
+        'user': user.id,
+        'ts': datetime.now(),
+        'sign': request.data['sign']
+    }
+    log_serial = LogSerializer(data=log_data)
+    if not log_serial.is_valid():
+        return Response(log_serial.errors, status=status.HTTP_400_BAD_REQUEST)
+    log = log_serial.save()
 
     return utils.requests_to_django(r)
 
