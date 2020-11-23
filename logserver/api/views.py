@@ -1,29 +1,65 @@
 import requests
+from logserver import utils
 from datetime import datetime
 
 from rest_framework import status
 from django.shortcuts import render
-from django.core.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 
 from .models import User
-from .serializers import RegisterSerializer, LogSerializer
+from .serializers import RegisterSerializer, LogSerializer, PubkeySerializer
 
 FILESERVER_URL = "http://localhost:8001/api/"
 
 # Create your views here.
 
 
-@api_view(['POST'])
-def upload_file(request):
-    user = request.user
-    if not user.is_authenticated:
-        raise PermissionDenied("You need to be authenticated to upload a file")
+@api_view(['GET'])
+def get_pubkey(request, username):
+    user = User.objects.get(username=username)
+    serial = PubkeySerializer(user)
+    return Response(serial.data, status=status.HTTP_200_OK)
 
-    r = requests.post(FILESERVER_URL + "user/{0}/file/".format(user.id),
+
+@api_view(['GET', 'PUT'])
+def file_details(request, file_id):
+    # Includes get a specific file and update a file that already exists
+    # Download or Update a specific file
+    user = utils.authenticated_user(request)
+    URL = FILESERVER_URL + "file/{}/user/{}/".format(user.id, file_id)
+    print("ENTROU NO PUT")
+
+    if request.method == 'GET':
+        r = requests.get(URL)
+    elif request.method == 'PUT':
+        r = requests.put(URL, files=request.FILES, data={'key': request.data["key"]})
+
+    if r.status_code < 200 or r.status_code >= 300:
+        return Response(r.content, status=r.status_code)
+
+    if request.method == 'PUT':
+        log_data = {
+            'file_id': file_id,
+            'user': user.id,
+            'ts': datetime.now(),
+            'sign': request.data['sign']
+        }
+        log_serial = LogSerializer(data=log_data)
+        if not log_serial.is_valid():
+            return Response(log_serial.errors, status=status.HTTP_400_BAD_REQUEST)
+        log = log_serial.save()
+
+    return utils.requests_to_django(r)
+
+
+@api_view(['POST'])
+def file_list(request):
+    user = utils.authenticated_user(request)
+
+    r = requests.post(FILESERVER_URL + "file/user/{}/".format(user.id),
                       files=request.FILES, data={'key': request.data["key"]})
 
     if r.status_code < 200 or r.status_code >= 300:
@@ -31,7 +67,7 @@ def upload_file(request):
 
     log_data = {
         'file_id': r.json()['file_id'],
-        'user': user,
+        'user': user.id,
         'ts': datetime.now(),
         'sign': request.data['sign']
     }
@@ -40,7 +76,7 @@ def upload_file(request):
         return Response(log_serial.errors, status=status.HTTP_400_BAD_REQUEST)
     log = log_serial.save()
 
-    return Response(status=status.HTTP_201_CREATED)
+    return Response({'file_id': log.file_id}, status=status.HTTP_201_CREATED)
 
 
 # Auth views

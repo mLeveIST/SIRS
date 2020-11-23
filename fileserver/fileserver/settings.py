@@ -126,4 +126,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'files')
+SENDFILE_BACKEND = 'sendfile.backends.development'
+SENDFILE_ROOT = os.path.join(BASE_DIR, 'files')
+
+MEDIA_ROOT = SENDFILE_ROOT

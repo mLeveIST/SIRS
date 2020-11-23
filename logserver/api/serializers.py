@@ -22,3 +22,9 @@ class LogSerializer(serializers.ModelSerializer):
     class Meta:
         model = Log
         fields = ['file_id', 'user', 'ts', 'sign']
+
+
+class PubkeySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['pubkey']
