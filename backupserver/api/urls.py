@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 
-urlpatterns = [
+app_name = 'api'
 
+urlpatterns = [
+	path('backup/', views.backup_data),
 ]
