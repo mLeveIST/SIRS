@@ -14,13 +14,16 @@ from .serializers import DataSerializer
 
 FILESERVER_URL = "http://localhost:8001/api/"
 
+
 # ------------------------------------ #
 # Services to be called by Logs Server #
 # ------------------------------------ #
 
-
 @api_view(['GET'])
 def backup_data(request):
+	# TODO only logs server can call this function
+
+
 	#r = requests.get(FILESERVER_URL + 'backup')
 
 	#if r.status_code < 200 or r.status_code >= 300:
@@ -44,6 +47,29 @@ def backup_data(request):
 	management.call_command('flush', verbosity=0, interactive=False)
 
 	return Response({'system_status': system_status}, status=status.HTTP_200_OK)
+
+
+# ------------------------------------- #
+# Services to be called by Files Server #
+# ------------------------------------- #
+
+@api_view(['GET'])
+def get_data(request):
+    # TODO only files server can call this function
+
+    utils.backup_cmd('mediabackup', '--output-path=temp/filestemp.tar')
+    utils.backup_cmd('dbbackup', '--output-path=temp/dbtemp.dump')
+
+    return Response(status=status.HTTP_200_OK)
+
+
+
+
+
+
+
+
+
 
 
 

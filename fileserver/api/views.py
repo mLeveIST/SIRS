@@ -1,4 +1,5 @@
 import os
+import requests
 from sendfile import sendfile
 
 from rest_framework import status
@@ -11,10 +12,10 @@ from fileserver import utils
 from .models import File, Key
 from .serializers import FileSerializer, KeySerializer, GetFileSerializer
 
+
 # ------------------------------------ #
 # Services to be called by Logs Server #
 # ------------------------------------ #
-
 
 @api_view(['GET', 'PUT'])
 def file_detail(request, user_id, file_id):
@@ -77,13 +78,12 @@ def file_list(request, user_id):
 # Services to be called by Backup Servers #
 # --------------------------------------- #
 
-
 @api_view(['GET'])
 def get_data(request):
     # TODO only backup servers can call this function
 
-    #utils.backup_cmd('mediabackup')
-    #utils.backup_cmd('dbbackup')
+    utils.backup_cmd('mediabackup')
+    utils.backup_cmd('dbbackup')
 
     return Response(status=status.HTTP_200_OK)
 
