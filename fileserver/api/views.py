@@ -74,6 +74,21 @@ def file_list(request, user_id):
         return Response({'file_id': file.id}, status=status.HTTP_201_CREATED)
 
 
+@api_view(['GET'])
+def recover_data(request, server_id)
+	r = requests.get(f"http://localhost:800{server_id}/api/files/") # TEMP
+
+	if r.status_code < 200 or r.status_code >= 300:
+		return Response(status=r.status_code)
+
+	if utils.empty_temp_files():
+		return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR) # TEMP
+
+	utils.backup_cmd('mediarestore', '--input-path=temp/filestemp.tar')
+	utils.backup_cmd('dbrestore', '--input-path=temp/dbtemp.dump')
+
+	return Response(status=status.HTTP_200_OK)
+
 # --------------------------------------- #
 # Services to be called by Backup Servers #
 # --------------------------------------- #

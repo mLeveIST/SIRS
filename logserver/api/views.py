@@ -12,6 +12,7 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from .models import User
 from .serializers import RegisterSerializer, LogSerializer, PubkeySerializer
 
+# TEMP
 FILESERVER_URL = "http://localhost:8001/api/"
 
 # ---------------------------------------- #
@@ -31,17 +32,17 @@ def file_details(request, file_id):
     # Includes get a specific file and update a file that already exists
     # Download or Update a specific file
     user = utils.authenticated_user(request)
-    URL = FILESERVER_URL + "file/{}/user/{}/".format(user.id, file_id)
-    print("ENTROU NO PUT")
+    URL = f"{FILESERVER_URL}file/{user.id}/user/{file_id}/" # TEMP
 
     if request.method == 'GET':
         get_file(request, file_id, URL)
     elif request.method == 'PUT':
+        print("ENTROU NO PUT")
         upload_file(request, file_id, URL, user)
         
 
 def get_file(request, file_id, url):
-    r = requests.get(URL)
+    r = requests.get(url)
 
     if r.status_code < 200 or r.status_code >= 300:
         return Response(r.content, status=r.status_code)
@@ -50,7 +51,7 @@ def get_file(request, file_id, url):
 
 
 def upload_file(request, file_id, url, user):
-    r = requests.put(URL, files=request.FILES, data={'key': request.data["key"]})
+    r = requests.put(url, files=request.FILES, data={'key': request.data["key"]})
 
     if r.status_code < 200 or r.status_code >= 300:
         return Response(r.content, status=r.status_code)

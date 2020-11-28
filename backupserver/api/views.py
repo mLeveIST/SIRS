@@ -12,6 +12,7 @@ from backupserver import utils
 from .models import File, Key
 from .serializers import DataSerializer
 
+# TEMP
 FILESERVER_URL = "http://localhost:8001/api/"
 
 
@@ -23,14 +24,13 @@ FILESERVER_URL = "http://localhost:8001/api/"
 def backup_data(request):
 	# TODO only logs server can call this function
 
+	r = requests.get(f"{FILESERVER_URL}files/") # TEMP
 
-	#r = requests.get(FILESERVER_URL + 'backup')
-
-	#if r.status_code < 200 or r.status_code >= 300:
-	#	return Response(status=r.status_code)
+	if r.status_code < 200 or r.status_code >= 300:
+		return Response(status=r.status_code)
 
 	if utils.empty_temp_files():
-		return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+		return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR) # TEMP
 
 	utils.backup_cmd('mediarestore', '--input-path=temp/filestemp.tar')
 	utils.backup_cmd('dbrestore', '--input-path=temp/dbtemp.dump')
@@ -57,8 +57,16 @@ def backup_data(request):
 def get_data(request):
     # TODO only files server can call this function
 
+
+    # Could be also be a 'cp'
+	utils.backup_cmd('mediarestore')
+	utils.backup_cmd('dbrestore')
+
     utils.backup_cmd('mediabackup', '--output-path=temp/filestemp.tar')
     utils.backup_cmd('dbbackup', '--output-path=temp/dbtemp.dump')
+
+	utils.remove_files('files')
+	management.call_command('flush', verbosity=0, interactive=False)
 
     return Response(status=status.HTTP_200_OK)
 
