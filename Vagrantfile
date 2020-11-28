@@ -16,6 +16,8 @@ Vagrant.configure("2") do |config|
       vb.name = "mgmt"
       vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
       vb.memory = "512"
+      vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+      vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
     end # of vb
     # Shared folders
     if Vagrant::Util::Platform.windows? then
@@ -36,12 +38,14 @@ Vagrant.configure("2") do |config|
   config.vm.define "log" do |log_config|
     log_config.vm.box = "ubuntu/bionic64"
     log_config.vm.hostname = "log"
-    log_config.vm.network :private_network, ip: "192.168.57.10"
+    log_config.vm.network "private_network", ip: "192.168.57.10"
     log_config.vm.network "forwarded_port", guest: 80, host: 8080
     log_config.vm.provider "virtualbox" do |vb|
         vb.name = "log"
         vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-        vb.memory = "256"
+        vb.memory = "512"
+        vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+        vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
     end # of vb
     # Provisioning
     log_config.vm.provision "shell", path: "bootstrap-mgmt.sh"
@@ -51,12 +55,14 @@ Vagrant.configure("2") do |config|
   config.vm.define "file" do |file_config|
     file_config.vm.box = "ubuntu/bionic64"
     file_config.vm.hostname = "file"
-    file_config.vm.network :private_network, ip: "192.168.57.11"
+    file_config.vm.network "private_network", ip: "192.168.57.13"
     file_config.vm.network "forwarded_port", guest: 80, host: 8081
     file_config.vm.provider "virtualbox" do |vb|
         vb.name = "file"
         vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-        vb.memory = "256"
+        vb.memory = "512"
+        vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+        vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
     end # of vb
     # Provisioning
     file_config.vm.provision "shell", path: "bootstrap-mgmt.sh"
@@ -69,14 +75,16 @@ Vagrant.configure("2") do |config|
       # Assign a friendly name to this host VM
       bs_config.vm.hostname = "bs#{i}"
       # Create a private network, which allows host-only access to the machine
-      bs_config.vm.network "private_network", ip: "192.168.5#{i}.10"
+      bs_config.vm.network "private_network", ip: "192.168.57.1#{i}"
       bs_config.vm.network "forwarded_port", guest: 80, host: 8081 + i
       # Provider-specific configuration so you can fine-tune various
       bs_config.vm.provider "virtualbox" do |vb|
           # Change the VM name/ID in the Hypervisor
           vb.name = "bs#{i}"
           vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-          vb.memory = 256
+          vb.memory = "512"
+          vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+          vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
       end # of vb
       # Provisioning
     bs_config.vm.provision "shell", path: "bootstrap-mgmt.sh"
@@ -98,29 +106,34 @@ Vagrant.configure("2") do |config|
             # Change the VM name/ID in the Hypervisor
             vb.name = "client#{i}"
             vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-            vb.memory = 256
+            vb.memory = "256"
+            vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+            vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
         end # of vb
+    # Provisioning
+    client_config.vm.provision "shell", path: "bootstrap-mgmt.sh"
     end # of client_config
   end # end of loop
 
-=begin
   # Create an new instance
   # insert your instructions here:
-  config.vm.define "trudy" do |trudy_config|
+  config.vm.define "attacker" do |attacker_config|
       # Every Vagrant development environment requires a box.
-      trudy_config.vm.box = "ubuntu/bionic64"
+      attacker_config.vm.box = "ubuntu/bionic64"
       # Assign a friendly name to this host VM
-      trudy_config.vm.hostname = "trudy"
+      attacker_config.vm.hostname = "attacker"
       # Create a private network, which allows host-only access to the machine
-      trudy_config.vm.network "private_network", ip: "192.168.59.14"
+      attacker_config.vm.network "private_network", ip: "192.168.53.10"
       # Provider-specific configuration so you can fine-tune various
-      trudy_config.vm.provider "virtualbox" do |vb|
+      attacker_config.vm.provider "virtualbox" do |vb|
         # Change the VM name/ID in the Hypervisor
-        vb.name = "trudy"
+        vb.name = "attacker"
         vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-        vb.memory = 256
+        vb.memory = "256"
+        vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
+        vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
       end # of vb
+  # Provisioning
+  attacker_config.vm.provision "shell", path: "bootstrap-mgmt.sh"
   end # of client_config
-=end
-
 end # of config

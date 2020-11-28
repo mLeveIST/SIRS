@@ -1,0 +1,80 @@
+# File Server
+- hosts: file
+  become: yes
+  become_method: sudo
+  gather_facts: no
+
+  tasks:
+
+  - name: Upgrade all apt packages
+    apt: upgrade=dist force_apt_get=yes
+
+  - name: install nfs
+    apt:
+      name: nfs-kernel-server
+      state: present
+      update_cache: yes
+
+  - name: create nfs directory
+    shell:
+      cmd: sudo mkdir -p /mnt/nfs_share
+
+  - name: reset group permissions of shared folder
+    shell:
+      cmd: sudo chown -R nobody:nogroup /mnt/nfs_share
+
+  - name: set rw permission
+    shell:
+      cmd: sudo chmod 777 /mnt/nfs_share
+
+  - name: write our nfs bs permission
+    blockinfile:
+      path: /etc/exports
+      block: |
+        /mnt/nfs_share  192.168.57.11/24(rw,sync,no_subtree_check)
+        /mnt/nfs_share  192.168.57.12/24(rw,sync,no_subtree_check)
+
+  - name: export permissions
+    shell:
+      cmd: exportfs -a
+    notify: restart nfs
+
+  - name: start nfs
+    service:
+      name: nfs-kernel-server
+      state: started
+
+  handlers:
+
+  - name: restart nfs
+    service:
+      name: nfs-kernel-server
+      state: restarted
+
+# Backup Servers
+- hosts: bs
+  become: yes
+  become_method: sudo
+  gather_facts: no
+
+  tasks:
+
+  - name: Upgrade all apt packages
+    apt: upgrade=dist force_apt_get=yes
+
+  - name: install nfs
+    apt:
+      name: nfs-common
+      state: present
+      update_cache: yes
+
+  - name: create nfs directory
+    shell:
+      cmd: sudo mkdir -p /mnt/nfs_clientshare
+
+  - name: mount shared folder
+    mount:
+      path: /mnt/nfs_clientshare
+      src: 192.168.57.13:/mnt/nfs_share
+      fstype: auto
+      state: mounted
