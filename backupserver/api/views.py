@@ -23,7 +23,7 @@ FILESERVER_URL = "http://localhost:8001/api/"
 @api_view(['GET'])
 def backup_data(request):
 	# TODO only logs server can call this function
-
+	
 	r = requests.get(f"{FILESERVER_URL}files/") # TEMP
 
 	if r.status_code < 200 or r.status_code >= 300:
@@ -55,20 +55,21 @@ def backup_data(request):
 
 @api_view(['GET'])
 def get_data(request):
-    # TODO only files server can call this function
+	# TODO only files server can call this function
 
-
-    # Could be also be a 'cp'
+	# These 4 lines could be also be a 'cp'
 	utils.backup_cmd('mediarestore')
 	utils.backup_cmd('dbrestore')
 
-    utils.backup_cmd('mediabackup', '--output-path=temp/filestemp.tar')
-    utils.backup_cmd('dbbackup', '--output-path=temp/dbtemp.dump')
+	utils.backup_cmd('mediabackup', '--output-path=temp/filestemp.tar')
+	utils.backup_cmd('dbbackup', '--output-path=temp/dbtemp.dump')
 
 	utils.remove_files('files')
 	management.call_command('flush', verbosity=0, interactive=False)
 
-    return Response(status=status.HTTP_200_OK)
+	file_data = DataSerializer(File.objects.all(), many=True)
+
+	return Response(file_data.data, status=status.HTTP_200_OK)
 
 
 

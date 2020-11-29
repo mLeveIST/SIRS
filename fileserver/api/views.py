@@ -10,7 +10,7 @@ from django.conf import settings
 
 from fileserver import utils
 from .models import File, Key
-from .serializers import FileSerializer, KeySerializer, GetFileSerializer
+from .serializers import FileSerializer, KeySerializer, GetFileSerializer, DataSerializer
 
 
 # ------------------------------------ #
@@ -46,7 +46,7 @@ def upload_file(request, user_id, file_id):
     # Missing delete file from media
 
     key = Key.objects.get(user_id=user_id, file=file_id)
-    key_serial = KeySerializer(instance=key, data={'value': request.data['key']}, partial=True)
+    key_serial = KeySerializer(instance=key, data={'evalue': request.data['key']}, partial=True)
     if not key_serial.is_valid():
         return Response(key_serial.errors, status=status.HTTP_400_BAD_REQUEST)
     key = key_serial.save()
@@ -65,7 +65,7 @@ def file_list(request, user_id):
             return Response(file_serial.errors, status=status.HTTP_400_BAD_REQUEST)
         file = file_serial.save()
 
-        key_data = {'user_id': user_id, 'value': request.data['key'], 'file': file.id}
+        key_data = {'user_id': user_id, 'file_id': file.id, 'evalue': request.data['key']}
         key_serial = KeySerializer(data=key_data)
         if not key_serial.is_valid():
             return Response(key_serial.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -75,7 +75,7 @@ def file_list(request, user_id):
 
 
 @api_view(['GET'])
-def recover_data(request, server_id)
+def recover_data(request, server_id):
 	r = requests.get(f"http://localhost:800{server_id}/api/files/") # TEMP
 
 	if r.status_code < 200 or r.status_code >= 300:
@@ -84,8 +84,11 @@ def recover_data(request, server_id)
 	if utils.empty_temp_files():
 		return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR) # TEMP
 
-	utils.backup_cmd('mediarestore', '--input-path=temp/filestemp.tar')
-	utils.backup_cmd('dbrestore', '--input-path=temp/dbtemp.dump')
+	utils.remove_files('files')
+	management.call_command('flush', verbosity=0, interactive=False)
+
+	utils.backup_cmd('mediarestore')
+	utils.backup_cmd('dbrestore')
 
 	return Response(status=status.HTTP_200_OK)
 
@@ -97,10 +100,12 @@ def recover_data(request, server_id)
 def get_data(request):
     # TODO only backup servers can call this function
 
-    utils.backup_cmd('mediabackup')
-    utils.backup_cmd('dbbackup')
+    utils.backup_cmd('mediabackup', '--clean')
+    utils.backup_cmd('dbbackup', '--clean')
 
-    return Response(status=status.HTTP_200_OK)
+    file_data = DataSerializer(File.objects.all(), many=True)
+
+    return Response(file_data.data, status=status.HTTP_200_OK)
 
 
 

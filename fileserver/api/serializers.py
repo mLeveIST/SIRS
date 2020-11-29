@@ -5,13 +5,13 @@ from .models import File, Key
 class FileSerializer(serializers.ModelSerializer):
     class Meta:
         model = File
-        fields = ['file']
+        fields = ['efile']
 
 
 class KeySerializer(serializers.ModelSerializer):
     class Meta:
         model = Key
-        fields = ['user_id', 'value', 'file']
+        fields = ['file_id', 'user_id', 'evalue']
 
 
 class GetFileSerializer(serializers.ModelSerializer):
@@ -19,4 +19,12 @@ class GetFileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = File
-        fields = ['file', 'key']
+        fields = ['efile', 'key']
+
+
+class DataSerializer(serializers.ModelSerializer):
+    keys = KeySerializer(source='key_set', many=True)
+
+    class Meta:
+        model = File
+        fields = ['id', 'efile', 'keys']
