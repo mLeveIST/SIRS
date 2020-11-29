@@ -1,59 +1,47 @@
 import requests
+from cryptography.hazmat.primitives import serialization
 
-log_server_ip = "http://192.168.57.10"
+log_server_ip = "http://localhost:8000"
 session_token = ""
-pubkey = "something"  # Go get from file
 
 
 def is_response_status_ok(response) -> bool:
-    return 200 < response.status_code < 300
+    return 200 <= response.status_code < 300
 
 
-def register(username: str, password: str) -> bool:
-    """
-    - Get pub key
-    - Create HTTP request with username and password
-    """
+def error_message(request, code, message):
+    return "Error in {} API request. Code: {}\nError message: {}".format(request, code, message)
+
+
+def register(username: str, password: str, pubkey) -> bool:
+    pubkey_serialized = pubkey.public_bytes(
+        encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.PKCS1)
     register_data = {
         "username": username,
         "password": password,
-        "pubkey": pubkey
+        "pubkey": pubkey_serialized
     }
 
-    response = requests.post("{}/api/user/register/".format(log_server_ip),
-                             data=register_data
-                             )
+    response = requests.post("{}/api/user/register/".format(log_server_ip), data=register_data)
 
-    if is_response_status_ok(response):
-        global session_token
-        session_token = response.json()["token"]
-        return True
+    if not is_response_status_ok(response):
+        raise RuntimeError(error_message('register', response.status_code, response.content))
 
-    print("Http response not ok: {}".format(response.json()))
-    return False
+    return response.json()
 
 
 def login(username: str, password: str) -> bool:
-    """
-    - Create HTTP request with username and password
-    - Save token (session) login
-    """
     login_data = {
         "username": username,
         "password": password
     }
 
-    response = requests.post("{}/api/user/register/".format(log_server_ip),
-                             data=login_data
-                             )
+    response = requests.post("{}/api/user/login/".format(log_server_ip), data=login_data)
 
-    if is_response_status_ok(response):
-        global session_token
-        session_token = response.json()["token"]
-        return True
+    if not is_response_status_ok(response):
+        raise RuntimeError(error_message('login', response.status_code, response.content))
 
-    print("Http response not ok: {}".format(response.json()))
-    return False
+    return response.json()
 
 
 def create_file(filepath: str, keys: list, contributors=None) -> bool:
