@@ -138,6 +138,7 @@ MEDIA_ROOT = BASE_DIR / 'files'
 DBBACKUP_STORAGE = 'django.core.files.storage.FileSystemStorage'
 DBBACKUP_STORAGE_OPTIONS = {'location': BASE_DIR / 'backups'}
 DBBACKUP_DATE_FORMAT = '%Y-%m-%d-%H%M%S%f'
+DBBACKUP_HOSTNAME = 'backup'
 DBBACKUP_FILENAME_TEMPLATE = 'db-backup-{datetime}.{extension}'
 DBBACKUP_MEDIA_FILENAME_TEMPLATE = 'files-backup-{datetime}.{extension}'
 DBBACKUP_CLEANUP_KEEP=1
