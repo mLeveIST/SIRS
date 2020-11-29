@@ -15,6 +15,10 @@ control/id_rsa.pub
 control/rootCA.crt
 control/rootCA.key
 
+# client
+client/test_priv.pem
+client/test_pub.pem
+
 # Django
 db.sqlite3
 
