@@ -135,11 +135,11 @@ SENDFILE_BACKEND = 'sendfile.backends.development'
 SENDFILE_ROOT = MEDIA_ROOT
 
 DBBACKUP_STORAGE = 'django.core.files.storage.FileSystemStorage'
-DBBACKUP_STORAGE_OPTIONS = {'location': os.path.join(BASE_DIR, 'temp')}
+DBBACKUP_STORAGE_OPTIONS = {'location': os.path.join(BASE_DIR, 'sharedfiles')}
 DBBACKUP_DATE_FORMAT = '%Y-%m-%d-%H%M%S%f'
 DBBACKUP_HOSTNAME = 'backup'
-DBBACKUP_FILENAME_TEMPLATE = 'db-backup-{datetime}.{extension}'
-DBBACKUP_MEDIA_FILENAME_TEMPLATE = 'files-backup-{datetime}.{extension}'
+DBBACKUP_FILENAME_TEMPLATE = 'db{databasename}-{servername}-{datetime}.{extension}'
+DBBACKUP_MEDIA_FILENAME_TEMPLATE = 'files-{servername}-{datetime}.{extension}'
 DBBACKUP_CLEANUP_KEEP=1
 DBBACKUP_CLEANUP_KEEP_MEDIA=1
 

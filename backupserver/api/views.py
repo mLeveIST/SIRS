@@ -13,7 +13,7 @@ from .models import File, Key
 from .serializers import DataSerializer
 
 # TEMP
-FILESERVER_URL = "http://localhost:8001/api/"
+FILESERVER_URL = "http://localhost:8000/api/"
 
 
 # ------------------------------------ #
@@ -29,19 +29,19 @@ def backup_data(request):
 	if r.status_code < 200 or r.status_code >= 300:
 		return Response(status=r.status_code)
 
-	if utils.empty_temp_files():
+	if utils.empty_directory('sharedfiles'):
 		return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR) # TEMP
 
-	utils.backup_cmd('mediarestore', '--input-path=temp/filestemp.tar')
-	utils.backup_cmd('dbrestore', '--input-path=temp/dbtemp.dump')
+	utils.backup_cmd('mediarestore')
+	utils.backup_cmd('dbrestore')
 
 	files_data = DataSerializer(File.objects.all(), many=True)
 
 	system_status = utils.check_integrity(request.data, files_data)
 
 	if system_status:
-		utils.backup_cmd('mediabackup', '--clean')
-		utils.backup_cmd('dbbackup', '--clean')
+		utils.backup_cmd('mediabackup', '--output-path=backups/files_backup.tar')
+		utils.backup_cmd('dbbackup', '--output-path=backups/db_backup.dump')
 
 	utils.remove_files('files')
 	management.call_command('flush', verbosity=0, interactive=False)
@@ -58,11 +58,11 @@ def get_data(request):
 	# TODO only files server can call this function
 
 	# These 4 lines could be also be a 'cp'
-	utils.backup_cmd('mediarestore')
-	utils.backup_cmd('dbrestore')
+	utils.backup_cmd('mediarestore', '--input-path=backups/files_backup.tar')
+	utils.backup_cmd('dbrestore', '--input-path=backups/db_backup.dump')
 
-	utils.backup_cmd('mediabackup', '--output-path=temp/filestemp.tar')
-	utils.backup_cmd('dbbackup', '--output-path=temp/dbtemp.dump')
+	utils.backup_cmd('mediabackup', '--clean')
+	utils.backup_cmd('dbbackup', '--clean')
 
 	utils.remove_files('files')
 	management.call_command('flush', verbosity=0, interactive=False)

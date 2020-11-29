@@ -8,6 +8,7 @@ def backup_cmd(cmd, op=None):
 	else:
 		management.call_command(cmd, verbosity=0, interactive=False)
 
+
 # TODO check exceptions
 def remove_files(path, depth=0):
 	root = Path(path)
@@ -19,6 +20,6 @@ def remove_files(path, depth=0):
 	if depth:
 		root.rmdir()
 
-def empty_temp_files():
-	return Path('temp/filestemp.tar').stat().st_size == 0 \
-		or Path('temp/dbtemp.dump').stat().st_size == 0
+
+def empty_directory(path):
+	return not Path(path).exists()

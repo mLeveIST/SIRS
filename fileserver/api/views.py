@@ -5,8 +5,10 @@ from sendfile import sendfile
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
+
 from django.http import FileResponse, HttpResponse
 from django.conf import settings
+from django.core import management
 
 from fileserver import utils
 from .models import File, Key
@@ -81,7 +83,7 @@ def recover_data(request, server_id):
 	if r.status_code < 200 or r.status_code >= 300:
 		return Response(status=r.status_code)
 
-	if utils.empty_temp_files():
+	if utils.empty_directory('sharedfiles'):
 		return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR) # TEMP
 
 	utils.remove_files('files')
