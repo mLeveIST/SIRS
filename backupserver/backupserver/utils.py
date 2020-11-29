@@ -1,6 +1,7 @@
+from django.core import management
 from pathlib import Path
 
-from django.core import management
+import os
 
 def backup_cmd(cmd, op=None):
 	if op:
@@ -8,9 +9,6 @@ def backup_cmd(cmd, op=None):
 	else:
 		management.call_command(cmd, verbosity=0, interactive=False)
 
-# TODO week of RIR development
-def check_integrity(logs_db, files_db):
-	return 1
 
 # TODO check exceptions
 def remove_files(path, depth=0):
@@ -23,5 +21,27 @@ def remove_files(path, depth=0):
 	if depth:
 		root.rmdir()
 
+
 def empty_directory(path):
 	return not Path(path).exists()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

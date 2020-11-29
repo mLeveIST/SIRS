@@ -8,12 +8,13 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from backupserver import rir
 from backupserver import utils
 from .models import File, Key
 from .serializers import DataSerializer
 
 # TEMP
-FILESERVER_URL = "http://localhost:8000/api/"
+FILESERVER_URL = "http://localhost:8001/api/"
 
 
 # ------------------------------------ #
@@ -35,9 +36,7 @@ def backup_data(request):
 	utils.backup_cmd('mediarestore')
 	utils.backup_cmd('dbrestore')
 
-	files_data = DataSerializer(File.objects.all(), many=True)
-
-	system_status = utils.check_integrity(request.data, files_data)
+	system_status = rir.check_integrity(r.json(), request.data)
 
 	if system_status:
 		utils.backup_cmd('mediabackup', '--output-path=backups/files_backup.tar')
