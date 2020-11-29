@@ -17,22 +17,22 @@
 
   - name: create nfs directory
     shell:
-      cmd: sudo mkdir -p /mnt/nfs_share
+      cmd: sudo mkdir -p /mnt/sharedfiles
 
   - name: reset group permissions of shared folder
     shell:
-      cmd: sudo chown -R nobody:nogroup /mnt/nfs_share
+      cmd: sudo chown -R nobody:nogroup /mnt/sharedfiles
 
   - name: set rw permission
     shell:
-      cmd: sudo chmod 777 /mnt/nfs_share
+      cmd: sudo chmod 777 /mnt/sharedfiles
 
   - name: write our nfs bs permission
     blockinfile:
       path: /etc/exports
       block: |
-        /mnt/nfs_share  192.168.57.11/24(rw,sync,no_subtree_check)
-        /mnt/nfs_share  192.168.57.12/24(rw,sync,no_subtree_check)
+        /mnt/sharedfiles  192.168.57.11/24(rw,sync,no_subtree_check)
+        /mnt/sharedfiles  192.168.57.12/24(rw,sync,no_subtree_check)
 
   - name: export permissions
     shell:
@@ -43,6 +43,10 @@
     service:
       name: nfs-kernel-server
       state: started
+
+  - name: create links to nfs folders
+    shell:
+      cmd: ln -s /mnt/sharedfiles /var/repo/fileserver
 
   handlers:
 
@@ -70,11 +74,15 @@
 
   - name: create nfs directory
     shell:
-      cmd: sudo mkdir -p /mnt/nfs_clientshare
+      cmd: sudo mkdir -p /mnt/sharedfiles
 
   - name: mount shared folder
     mount:
-      path: /mnt/nfs_clientshare
-      src: 192.168.57.13:/mnt/nfs_share
+      path: /mnt/sharedfiles
+      src: 192.168.57.13:/mnt/sharedfiles
       fstype: auto
       state: mounted
+
+  - name: create links to nfs folders
+    shell:
+      cmd: ln -s /mnt/sharedfiles /var/repo/backupserver

@@ -25,4 +25,5 @@ db.sqlite3
 # Temporary
 migrations/
 fileserver/files/
+fileserver/sharedfiles
 
