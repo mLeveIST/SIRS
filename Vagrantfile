@@ -31,7 +31,7 @@ Vagrant.configure("2") do |config|
       mount_options: ["dmode=775", "fmode=775"]
     end # of shared folders
     # Provisioning
-    mgmt_config.vm.provision "shell", path: "bootstrap-mgmt.sh"
+    mgmt_config.vm.provision "shell", path: "provisioning/bootstrap-mgmt.sh"
   end # of mgmt_config
 
   # create Log Server
@@ -39,7 +39,7 @@ Vagrant.configure("2") do |config|
     log_config.vm.box = "ubuntu/bionic64"
     log_config.vm.hostname = "log"
     log_config.vm.network "private_network", ip: "192.168.57.10"
-    log_config.vm.network "forwarded_port", guest: 80, host: 8080
+    log_config.vm.network "forwarded_port", guest: 8000, host: 8080
     log_config.vm.provider "virtualbox" do |vb|
         vb.name = "log"
         vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
@@ -47,8 +47,19 @@ Vagrant.configure("2") do |config|
         vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
         vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
     end # of vb
+    # Shared folders
+    if Vagrant::Util::Platform.windows? then
+      # Configuration SPECIFIC for Windows 10 hosts
+      log_config.vm.synced_folder "logserver", "/home/vagrant/logserver",
+      id: "vagrant-root", owner: "vagrant", group: "vagrant",
+      mount_options: ["dmode=775", "fmode=775"]
+    else
+      # Configuration for Unix/Linux hosts
+      log_config.vm.synced_folder "logserver", "/home/vagrant/logserver",
+      mount_options: ["dmode=775", "fmode=775"]
+    end # of shared folders
     # Provisioning
-    log_config.vm.provision "shell", path: "bootstrap-mgmt.sh"
+    log_config.vm.provision "shell", path: "provisioning/bootstrap-servers.sh"
   end # of log_config
 
   # create File Server
@@ -56,7 +67,7 @@ Vagrant.configure("2") do |config|
     file_config.vm.box = "ubuntu/bionic64"
     file_config.vm.hostname = "file"
     file_config.vm.network "private_network", ip: "192.168.57.13"
-    file_config.vm.network "forwarded_port", guest: 80, host: 8081
+    file_config.vm.network "forwarded_port", guest: 8000, host: 8081
     file_config.vm.provider "virtualbox" do |vb|
         vb.name = "file"
         vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
@@ -64,8 +75,19 @@ Vagrant.configure("2") do |config|
         vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
         vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
     end # of vb
+    # Shared folders
+    if Vagrant::Util::Platform.windows? then
+      # Configuration SPECIFIC for Windows 10 hosts
+      file_config.vm.synced_folder "fileserver", "/home/vagrant/fileserver",
+      id: "vagrant-root", owner: "vagrant", group: "vagrant",
+      mount_options: ["dmode=775", "fmode=775"]
+    else
+      # Configuration for Unix/Linux hosts
+      file_config.vm.synced_folder "fileserver", "/home/vagrant/fileserver",
+      mount_options: ["dmode=775", "fmode=775"]
+    end # of shared folders
     # Provisioning
-    file_config.vm.provision "shell", path: "bootstrap-mgmt.sh"
+    file_config.vm.provision "shell", path: "provisioning/bootstrap-servers.sh"
   end # of file_config
 
   (1..2).each do |i|
@@ -76,7 +98,7 @@ Vagrant.configure("2") do |config|
       bs_config.vm.hostname = "bs#{i}"
       # Create a private network, which allows host-only access to the machine
       bs_config.vm.network "private_network", ip: "192.168.57.1#{i}"
-      bs_config.vm.network "forwarded_port", guest: 80, host: 8081 + i
+      bs_config.vm.network "forwarded_port", guest: 8000, host: 8081 + i
       # Provider-specific configuration so you can fine-tune various
       bs_config.vm.provider "virtualbox" do |vb|
           # Change the VM name/ID in the Hypervisor
@@ -86,14 +108,25 @@ Vagrant.configure("2") do |config|
           vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
           vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
       end # of vb
+      # Shared folders
+      if Vagrant::Util::Platform.windows? then
+        # Configuration SPECIFIC for Windows 10 hosts
+        bs_config.vm.synced_folder "backupserver", "/home/vagrant/backupserver",
+        id: "vagrant-root", owner: "vagrant", group: "vagrant",
+        mount_options: ["dmode=775", "fmode=775"]
+      else
+        # Configuration for Unix/Linux hosts
+        bs_config.vm.synced_folder "backupserver", "/home/vagrant/backupserver",
+        mount_options: ["dmode=775", "fmode=775"]
+      end # of shared folders
       # Provisioning
-    bs_config.vm.provision "shell", path: "bootstrap-mgmt.sh"
+    bs_config.vm.provision "shell", path: "provisioning/bootstrap-servers.sh"
     end # of  bs_config
   end # end of loop
 
   # Create an new instance
   # insert your instructions here:
-  (1..3).each do |i|
+  (1..4).each do |i|
     config.vm.define "client#{i}" do |client_config|
         # Every Vagrant development environment requires a box.
         client_config.vm.box = "ubuntu/bionic64"
@@ -110,30 +143,19 @@ Vagrant.configure("2") do |config|
             vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
             vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
         end # of vb
+        # Shared folders
+        if Vagrant::Util::Platform.windows? then
+          # Configuration SPECIFIC for Windows 10 hosts
+          client_config.vm.synced_folder "client", "/home/vagrant/client",
+          id: "vagrant-root", owner: "vagrant", group: "vagrant",
+          mount_options: ["dmode=775", "fmode=775"]
+        else
+          # Configuration for Unix/Linux hosts
+          client_config.vm.synced_folder "client", "/home/vagrant/client",
+          mount_options: ["dmode=775", "fmode=775"]
+        end # of shared folders
     # Provisioning
-    client_config.vm.provision "shell", path: "bootstrap-mgmt.sh"
+    client_config.vm.provision "shell", path: "provisioning/bootstrap-client.sh"
     end # of client_config
   end # end of loop
-
-  # Create an new instance
-  # insert your instructions here:
-  config.vm.define "attacker" do |attacker_config|
-      # Every Vagrant development environment requires a box.
-      attacker_config.vm.box = "ubuntu/bionic64"
-      # Assign a friendly name to this host VM
-      attacker_config.vm.hostname = "attacker"
-      # Create a private network, which allows host-only access to the machine
-      attacker_config.vm.network "private_network", ip: "192.168.53.10"
-      # Provider-specific configuration so you can fine-tune various
-      attacker_config.vm.provider "virtualbox" do |vb|
-        # Change the VM name/ID in the Hypervisor
-        vb.name = "attacker"
-        vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-        vb.memory = "256"
-        vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
-        vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
-      end # of vb
-  # Provisioning
-  attacker_config.vm.provision "shell", path: "bootstrap-mgmt.sh"
-  end # of client_config
 end # of config

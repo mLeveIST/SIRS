@@ -1,0 +1,26 @@
+---
+- hosts:  all
+  become: yes
+  become_method: sudo
+  gather_facts: no
+
+  tasks:
+    - name: install ca package
+      apt:
+        name: ca-certificates
+        state: present
+        update_cache: yes
+
+    - name: copy certificate authority to trusted ca path of the os
+      copy:
+        src: /home/vagrant/control/rootCA.crt
+        dest: /usr/local/share/ca-certificates
+        owner: root
+        group: root
+        mode: 0644
+      notify:
+        - update trusted ca
+
+  handlers:
+    - name: update trusted ca
+      shell: /usr/sbin/update-ca-certificates

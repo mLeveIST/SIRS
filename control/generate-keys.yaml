@@ -1,0 +1,29 @@
+- hosts:  file
+  become: yes
+  become_method: sudo
+  gather_facts: yes
+
+  tasks:
+    - name: generate private key
+      shell:
+        cmd: openssl genrsa -out {{ inventory_hostname }}.key 2048
+
+    - name: generate public key
+      shell:
+        cmd: openssl req -new -sha256 -key {{ inventory_hostname }}.key -subj "/C=PT/ST=Lisboa/L=Oeiras/O=IST/OU=SIRS/CN={{ inventory_hostname }}" -out {{ inventory_hostname }}.csr
+
+    - name: sign certificate with ca
+      shell:
+        cmd: openssl x509 -req -in {{ inventory_hostname }}.csr -CA rootCA.crt -CAkey rootCA.key -CAcreateserial -out {{ inventory_hostname }}.crt -days 364 -sha256
+
+    - name: move keys to /etc/ssl/certs
+      shell:
+        cmd: mv {{ item }} /etc/ssl/certs
+      with_items:
+        - "{{ inventory_hostname }}.crt"
+        - "{{ inventory_hostname }}.csr"
+        - "{{ inventory_hostname }}.key"
+
+    - name: remove ca keys
+      shell:
+        cmd: rm -f rootCA*
