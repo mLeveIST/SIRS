@@ -99,16 +99,13 @@ def file_list(request):
 
 @api_view(['POST'])
 def register(request):
-    data = {}
     serial = RegisterSerializer(data=request.data)
     if not serial.is_valid():
         return Response(serial.errors, status=status.HTTP_400_BAD_REQUEST)
     user = serial.save()
     token = Token.objects.get(user=user)
 
-    data['response'] = 'successfully registered a new user'
-    data['token'] = token.key
-    return Response(data, status=status.HTTP_201_CREATED)
+    return Response({'token': token.key}, status=status.HTTP_201_CREATED)
 
 
 class LoginClass(ObtainAuthToken):

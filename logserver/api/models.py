@@ -19,7 +19,7 @@ class UserManager(BaseUserManager):
         user = self.create_user(
             username=username,
             password=password,
-            pubkey='this is a superuser key'
+            pubkey=b'this is a superuser key'
         )
         user.save(using=self._db)
         return user
@@ -27,7 +27,7 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser):
     username = models.CharField(max_length=64, unique=True)
-    pubkey = models.CharField(max_length=64)
+    pubkey = models.BinaryField()
     is_active = models.BooleanField(default=True)
 
     USERNAME_FIELD = 'username'
