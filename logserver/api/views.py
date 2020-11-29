@@ -13,7 +13,7 @@ from .models import User
 from .serializers import RegisterSerializer, LogSerializer, PubkeySerializer
 
 FILESERVER_URL = "http://localhost:8001/api/"
-
+#FILESERVER_URL = "http://file/api/"
 # Create your views here.
 
 

@@ -12,6 +12,8 @@ Vagrantfile(libvirt)
 *.log
 control/id_rsa
 control/id_rsa.pub
+control/rootCA.crt
+control/rootCA.key
 
 # Django
 db.sqlite3
