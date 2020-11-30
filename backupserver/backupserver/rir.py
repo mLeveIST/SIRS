@@ -8,6 +8,9 @@ from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives.asymmetric import padding, rsa, utils
+from cryptography.hazmat.primitives.serialization import load_pem_public_key
+
+from cryptography.exceptions import InvalidSignature
 
 from typing import List
 from sys import stderr
@@ -63,9 +66,29 @@ def check_digest(file: dict, log: dict) -> bool:
 	file_path = f'files/{file["efile"]}'
 	ekeys = [ekey["evalue"].encode()[:-12] for ekey in file["ekeys"]]
 
+	public_key = load_pem_public_key(log["pubkey"].encode())
+	
+	if not isinstance(public_key, rsa.RSAPublicKey):
+		print("Error loading public key!")
+		return 0
+
 	digest = create_digest(file_path, ekeys, log["version"])
 
-	return digest != log["digest"].encode()
+	try:
+		public_key.verify(
+			log["signature"],
+			digest,
+			padding.PSS(
+				mgf=padding.MGF1(hashes.SHA256()),
+				salt_length=padding.PSS.MAX_LENGTH
+			),
+			utils.Prehashed(chosen_hash)
+		)
+	except InvalidSignature:
+		print("Digest is not valid! Integrity error!")
+		return 0
+
+	return 1
 
 
 def create_digest(file_path: str, ekeys: List[bytes], version: int) -> bytes:
@@ -96,19 +119,21 @@ LOGS DATA
   {
     "file_id": 1,
     "user_id": 1,
-    "digest": "cbati37uya389go2hp2q4uiowefubj",
+    "signature": "cbati37uya389go2hp2q4uiowefubj",
+    "pubkey": "cfjvghkbn",
     "version": 12,
     "contributors": [1, 2]
   },
   {
     "file_id": 2,
     "user_id": 1,
-    "digest": "treytyjkuvhbjnuyrt567ioj2efnfh",
+    "signature": "treytyjkuvhbjnuyrt567ioj2efnfh",
+    "pubkey": "c7r56vt8yiu",
     "version": 1,
     "contributors": [1]
   },
   {
-    "....."
+    "..."
   }
 ]
 """
@@ -144,7 +169,7 @@ FILES DATA
     ]
   }
   {
-    "....."
+    "..."
   }
 ]
 """
