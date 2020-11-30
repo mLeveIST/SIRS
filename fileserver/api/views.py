@@ -8,7 +8,7 @@ from django.http import FileResponse, HttpResponse
 from django.conf import settings
 
 from .models import File, Key
-from .serializers import FileSerializer, KeySerializer, GetFileSerializer
+from .serializers import UploadFileSerializer, KeySerializer, DownloadFileSerializer
 
 
 @api_view(['GET', 'PUT'])
@@ -26,7 +26,7 @@ def file_detail(request, user_id, file_id):
     elif request.method == 'PUT':
         # File update
         file = File.objects.get(id=file_id)
-        file_serial = FileSerializer(instance=file, data=request.FILES)
+        file_serial = UploadFileSerializer(instance=file, data=request.FILES)
         if not file_serial.is_valid():
             return Response(file_serial.errors, status=status.HTTP_400_BAD_REQUEST)
         file = file_serial.save()
@@ -46,13 +46,16 @@ def file_list(request, user_id):
     # Includes get all files of a specific user and a upload of a file
     # At this time, no GET of all files is done, just upload file (POST)
 
-    if request.method == 'POST':
-        file_serial = FileSerializer(data=request.FILES)
+    if request.method == 'GET':
+        File.objects.filter(key__user_id=user_id)
+
+    elif request.method == 'POST':
+        file_serial = UploadFileSerializer(data=request.FILES)
         if not file_serial.is_valid():
             return Response(file_serial.errors, status=status.HTTP_400_BAD_REQUEST)
         file = file_serial.save()
 
-        key_data = {'user_id': user_id, 'value': request.data['key'], 'file': file.id}
+        key_data = {'user_id': user_id, 'key': request.data['key'], 'file': file.id}
         key_serial = KeySerializer(data=key_data)
         if not key_serial.is_valid():
             return Response(key_serial.errors, status=status.HTTP_400_BAD_REQUEST)

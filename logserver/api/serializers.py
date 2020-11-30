@@ -4,7 +4,7 @@ from .models import User, Log
 from cryptography.hazmat.primitives import serialization
 
 
-class KeyField(serializers.Field):
+class RSAPublicKeyField(serializers.Field):
     def to_representation(self, value):
         key_serial = serialization.load_der_public_key(value)
         return key_serial.public_bytes(
@@ -19,8 +19,18 @@ class KeyField(serializers.Field):
             format=serialization.PublicFormat.PKCS1)
 
 
+class SignatureField(serializers.Field):
+    def to_representation(self, value):
+        return value.decode()
+
+    def to_internal_value(self, data):
+        print((data,))
+        print((data.encode(),))
+        return data.encode()
+
+
 class RegisterSerializer(serializers.ModelSerializer):
-    pubkey = KeyField()
+    pubkey = RSAPublicKeyField()
 
     class Meta:
         model = User
@@ -41,6 +51,9 @@ class LogSerializer(serializers.ModelSerializer):
     class Meta:
         model = Log
         fields = ['file_id', 'user', 'ts', 'sign']
+
+    # def validate(self, data):
+    #    pubkey = User.objects.get(data['user']).pubkey
 
 
 class PubkeySerializer(serializers.ModelSerializer):

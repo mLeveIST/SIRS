@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from sys import argv
-from encryption import generate_RSA_keys, encrypt_PGP_AES_GCM, decrypt_PGP_AES_GCM
+from encryption import generate_RSA_keys, encrypt_file, decrypt_file
 from cryptography.hazmat.primitives import serialization
 from selectmenu import SelectMenu
 import os
@@ -13,16 +13,26 @@ key_pair = None
 
 
 def action_login():
-    global token
+    global token, key_pair
+    key_pair = load_keys()
+
     user = input("Username: ")
     pw = getpass("Password: ")
     clear_screen()
+
     token = api.login(user, pw)["token"]
     return mainMenu.select_action()
 
 
-def action_register():
-    global token
+def action_register(key_method):
+    global token, key_pair
+    if key_method == 'generate':
+        key_pair = generate_RSA_keys()
+    elif key_method == 'load':
+        key_pair = load_keys()
+    else:
+        raise SystemError("Something went wrong when choosing the key method")
+
     user = input("Username: ")
     pw = getpass("Password: ")
     if pw != getpass("Confirm Password: "):
@@ -33,17 +43,9 @@ def action_register():
     return mainMenu.select_action()
 
 
-def action_generate_keys():
-    global key_pair
-    key_pair = generate_RSA_keys()
-    return action_register()
-
-
-def action_load_keys():
-    global key_pair
-
+def load_keys():
     priv_path = input("Private key path: ")
-    pub_path = input("Private key path: ")
+    pub_path = input("Public key path: ")
     clear_screen()
 
     with open(priv_path, "rb") as priv_file:
@@ -52,9 +54,16 @@ def action_load_keys():
     with open(pub_path, "rb") as pub_file:
         pub_key = serialization.load_pem_public_key(pub_file.read())
 
-    key_pair = {'private': priv_key, 'public': pub_key}
+    return {'private': priv_key, 'public': pub_key}
 
-    return action_register()
+
+def action_upload_file():
+    file_path = input("File path: ")
+    file = open(file_path, 'rb')
+
+    payload = encrypt_file(file.read(), 1, key_pair)
+
+    api.upload_file(token, payload['edata'], payload['ekey'], payload['version'], payload['sign'])
 
 
 def clear_screen():
@@ -69,8 +78,8 @@ def clear_screen():
 startMenu = SelectMenu()
 
 registerMenu = SelectMenu({
-    '1. Generate a new RSA key pair': action_generate_keys,
-    '2. Select an already existing RSA key pair': action_load_keys,
+    '1. Generate a new RSA key pair': lambda: action_register('generate'),
+    '2. Select an already existing RSA key pair': lambda: action_register('load'),
     '0. Back': startMenu.select_action
 })
 
@@ -81,7 +90,7 @@ startMenu = SelectMenu({
 })
 
 mainMenu = SelectMenu({
-    '1. Upload file': lambda: print("PILA"),
+    '1. Upload file': action_upload_file,
     '2. Download file': lambda: print("CONA"),
     '0. Exit': exit
 })

@@ -16,4 +16,4 @@ class File(models.Model):
 class Key(models.Model):
     user_id = models.IntegerField()
     file = models.ForeignKey(File, on_delete=models.CASCADE)
-    value = models.CharField(max_length=64)
+    key = models.BinaryField()

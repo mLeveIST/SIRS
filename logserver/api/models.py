@@ -45,4 +45,4 @@ class Log(models.Model):
     file_id = models.IntegerField()
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     ts = models.DateTimeField()
-    sign = models.CharField(max_length=64)
+    sign = models.BinaryField()

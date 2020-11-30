@@ -1,4 +1,4 @@
-from cryptography.exceptions import InvalidTag 
+from cryptography.exceptions import InvalidTag
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
@@ -17,10 +17,6 @@ MAX_DATA_SIZE = 4294967296  # 4GB (TEMP)
 RAND_KEY_SIZE = 256  # bits
 BLOCK_SIZE = 128  # bits
 
-# TEMP
-private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-public_key = private_key.public_key()
-
 
 def generate_RSA_keys():
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -28,7 +24,9 @@ def generate_RSA_keys():
     return {'private': private_key, 'public': public_key}
 
 
-def encrypt_PGP_AES_GCM(data: bytes, version: bytes) -> tuple:
+def encrypt_file(data: bytes, version: int, keypair: dict) -> dict:
+    private_key = keypair['private']
+    public_key = keypair['public']
 
     random_key = AESGCM.generate_key(bit_length=256)  # also uses urandom()
     cipher = AESGCM(random_key)
@@ -39,16 +37,6 @@ def encrypt_PGP_AES_GCM(data: bytes, version: bytes) -> tuple:
         edata = cipher.encrypt(nonce, data, None)
     except OverflowError:  # if data is > 2^32 bytes
         error(f"Data is too big (exceeds 4GB)!")
-
-    # TODO - Get Private Key
-    #
-    # with open("path/to/key.pem", "rb") as key_file: # needs to be .pem ?
-    #   private_key = serialization.load_pem_private_key(
-    #       key_file.read(),
-    #       password=None, # Add password ?
-    #   )
-    #
-    # public_key = private_key.public_key() # Also read from file ?
 
     # Encrypt random key
     ekey = public_key.encrypt(
@@ -64,7 +52,7 @@ def encrypt_PGP_AES_GCM(data: bytes, version: bytes) -> tuple:
     hashfunc = hashes.Hash(hashes.SHA256())
     hashfunc.update(edata)
     hashfunc.update(ekey)
-    hashfunc.update(version)
+    hashfunc.update(str(version).encode())
     digest = hashfunc.finalize()
 
     # Sign digest
@@ -77,15 +65,15 @@ def encrypt_PGP_AES_GCM(data: bytes, version: bytes) -> tuple:
         utils.Prehashed(hashes.SHA256())
     )
 
-    return (edata, ekey + nonce, version, signature)
+    return {'edata': edata, 'ekey': ekey + nonce, 'version': version, 'sign': signature}
 
 
-def decrypt_PGP_AES_GCM(edata: bytes, ekey: bytes):
-
+def decrypt_file(edata: bytes, pgp: bytes, keypair: dict):
+    private_key = keypair['private']
     # Decrypt random key and get nonce
-    nonce = ekey[-12:]
+    nonce = pgp[-12:]
     random_key = private_key.decrypt(
-        ekey[:-12],
+        pgp[:-12],
         padding.OAEP(
             mgf=padding.MGF1(algorithm=hashes.SHA256()),
             algorithm=hashes.SHA256(),
@@ -99,27 +87,9 @@ def decrypt_PGP_AES_GCM(edata: bytes, ekey: bytes):
     try:
         data = cipher.decrypt(nonce, edata, None)
     except InvalidTag:
-        print("Integrity attack!") # If edata, nonce or random_key were changed
+        print("Integrity attack!")  # If edata, nonce or random_key were changed
 
     return data
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # DEPRECATED
@@ -194,4 +164,3 @@ def decrypt_PGP_AES_CBC(edata: bytes, ekey: bytes):
     data = unpadder.update(padded_data) + unpadder.finalize()
 
     return data
-
