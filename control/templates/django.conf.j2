@@ -31,16 +31,6 @@ NameVirtualHost *:80
     Require all granted
     </Location>
 
-    <Location "/hub">
-    <LimitExcept GET>
-      Order deny,allow
-      Deny from all
-      Allow from 172.20.15.0/24
-      Allow from 172.20.29.0/24
-      Allow from 127.0.0.1
-    </LimitExcept>    
-    </Location>
-
     Alias /static {{ ansible_hostname }}server/static
     <Location "/static">
     SetHandler None
