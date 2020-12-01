@@ -12,9 +12,6 @@ sudo apt-get -y python-dev
 sudo apt-get -y python-pip 
 sudo apt-get -y python3-pip
 
-# Add graph builder tool for Terraform
-sudo apt-get -y install graphviz
-
 # install ansible (http://docs.ansible.com/intro_installation.html)
 apt-add-repository -y ppa:ansible/ansible
 sudo apt-get update
@@ -36,3 +33,12 @@ cat >> /etc/hosts <<EOL
 192.168.59.13   client3
 192.168.59.14   client4
 EOL
+
+ssh-keygen -t rsa -b 2048 -N "" -f ".ssh/id_rsa"
+chown vagrant:vagrant .ssh/id*
+cp .ssh/id* control/
+rm -f /etc/ssl/openssl.cnf
+cp /vagrant/control/openssl.cnf /etc/ssl/
+openssl genrsa -out rootCA.key 4096
+openssl req -x509 -new -nodes -key rootCA.key -sha256 -days 1024 -out rootCA.crt -subj "/C=PT/ST=Lisboa/L=Oeiras/O=IST/OU=SIRS/CN=sirs.rickerp.pt"
+mv root* control/
