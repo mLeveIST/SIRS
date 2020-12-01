@@ -2,7 +2,6 @@
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
-
   config.ssh.insert_key = false
   config.vbguest.auto_update = false
   config.vm.box_check_update = false  
@@ -32,6 +31,7 @@ Vagrant.configure("2") do |config|
     end # of shared folders
     # Provisioning
     mgmt_config.vm.provision "shell", path: "provisioning/bootstrap-mgmt.sh"
+    
   end # of mgmt_config
 
   # create Log Server
