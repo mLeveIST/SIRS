@@ -1,7 +1,7 @@
 - hosts: targets
   become: yes
   become_method: sudo
-  gather_facts: no
+  gather_facts: yes
 
   tasks:
     - name: disable apache default conf
@@ -10,7 +10,7 @@
 
     - name: apache config template
       template:
-        src: /templates/django.conf.j2
+        src: templates/django.conf.j2
         dest: /etc/apache2/sites-available/django.conf
         owner: www-data
         group: www-data
