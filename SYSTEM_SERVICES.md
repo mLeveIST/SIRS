@@ -5,8 +5,8 @@
 ### Services to Client Machines
 
 - `register_user`: Registers a user in the system.<br>
-Receives a *username*, a *password* and a *certificate* for its public key.<br>
-The *username* must be unique and the *certificate* valid.<br>
+Receives a *username*, a *password* and the clients *public key*.<br>
+The *username* must be unique and the *public key* valid.<br>
 Returns a *token* for the session.
 
 - `login_user`: Authenticates and starts a session with the user.<br>
@@ -27,10 +27,18 @@ User must be logged in to call this service.<br>
 Receives a *file ID*.<br>
 Returns the requested *file data* and *file key* for the user.
 
-- `get_user_certificates`: Retrieves the specified users in the system.<br>
+- `get_user_files`: Retrives the users file names from the File Server.<br>
+User must be logged in to call this service.<br>
+Returns the *file names* and the *file IDs* for the user.
+
+- `get_user_pubkeys`: Retrieves public keys of the specified users in the system.<br>
 User must be logged in to call this service.<br>
 Receives a *list of usernames*.<br>
-Returns the *certificates* of the requested usernames.
+Returns the *public keys* of the requested usernamed users.
+
+- `report_integrity_error`: Signals the Log Server of a failed atempt to process a file.<br>
+User must be logged in to call this service.<br>
+Receives the *file ID*.
 
 **Extra services**
 
@@ -63,7 +71,7 @@ Receives a *Backup Server ID*.
 ### Services to Backup Servers
 
 - `get_data`: Retrieves all the data stored in the Files Server.<br>
-Returns the stored data.
+Returns the *files data*.
 
 ## Backup Servers
 
@@ -72,9 +80,9 @@ Returns the stored data.
 - `backup_data`: Performs a full backup of the data in the Files Server.<br>
 Only successful if all storage integrity checks pass.<br>
 Receives the Logs Server *log data*.<br>
-Returns the *Backup Server ID*, a *completion status* of the backup and a *timestamp* of the last backup.
+Returns the *Backup Server ID* and a *completion status* of the backup.
 
 ### Services to Files Server
 
-- `get_data`: Retrieves the backup data from a Backup Server, rolling back the file system state.<br>
-Returns the stored *backup data*.
+- `get_data`: Retrieves the backup files data from a Backup Server.
+Returns the stored *backup files data*.

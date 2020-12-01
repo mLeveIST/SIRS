@@ -20,6 +20,7 @@ cp /vagrant/control/root* /home/vagrant/
 sudo mkdir -p /var/repo
 cp -R /vagrant/backupserver /var/repo
 sudo chown -R www-data:www-data /var/repo/backupserver
+sudo rm -Rf /var/repo/backupserver/sharedfiles
 
 # configure hosts file for the internal network defined by Vagrantfile
 cat >> /etc/hosts <<EOL

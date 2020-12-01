@@ -86,3 +86,7 @@
   - name: create links to nfs folders
     shell:
       cmd: ln -s /mnt/sharedfiles /var/repo/backupserver
+
+  - name: change owner of sharedfiles
+    shell:
+      cmd: chown www-data:www-data /var/repo/backupserver/sharedfiles
