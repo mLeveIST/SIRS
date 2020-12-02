@@ -2,6 +2,20 @@
 
 ## Logs Server
 
+| REST Call         | URLs                      | Method |
+| :---------------- | :------------------------ | :----- |
+| `register_user`   | `api/register/`           | POST   |
+| `login_user`      | `api/login/`              | POST   |
+| `create_file`\*   | `api/files/`              | POST   |
+| `update_file`\*\* | `api/files/<fid>/`        | PUT    |
+| `get_file`\*\*    | `api/files/<fid>/`        | GET    |
+| `get_files`\*     | `api/files/`              | GET    |
+| `report_file`     | `api/files/<fid>/report/` | GET    |
+| `get_users`       | `api/files/<fid>/users/`  | GET    |
+
+###### \* In practice, the used call is `files_detail`.
+###### \*\* In practice, the used call is `file_detail`.
+
 ### Services to Client Machines
 
 - `register_user`: Registers a user in the system.<br>
@@ -13,32 +27,33 @@ Returns a *token* for the session.
 Receives a *username* and a *password*.<br>
 Returns a *token* for the session.
 
-- `create_file`: Submits a new file to the system to be stored by the Files Server.<br>
+- `upload_file`: Submits a new file to the system to be stored by the Files Server.<br>
 User must be logged in to call this service.<br>
-Receives the *encrypted file*, a list of *encrypted keys* to the file, the *version* of the file, the user *signed digest* of the previous three arguments and a *list of usernames* that can contribute to the file.<br>
+Receives the *encrypted file*, a list of *encrypted keys* to the file, the *version* of the file, the user *signed digest* of the previous three arguments and a *list of usernames* that can contribute to the file (including the user).<br>
+The *version* must be equal to 1.<br>
 Returns the new *file ID*.
 
 - `update_file`: Updates a file in the system.<br>
 User must be logged in to call this service.<br>
-Receives the *encrypted file*, a list of *encrypted keys* to the file, the *version* of the file, the user *signed digest* of the previous three arguments and the *file ID*.
+Receives the *encrypted file*, a list of *encrypted keys* to the file, the *version* of the file, the user *signed digest* of the previous three arguments, a *list of usernames* of the contributors (including the user) and the *file ID*.
 
 - `get_file`: Retrieves a file from the File Server to a user that has access to it.<br>
 User must be logged in to call this service.<br>
 Receives a *file ID*.<br>
-Returns the requested *file data* and *file key* for the user.
+Returns the requested *file data*, *file key* for the user and file *version*.
 
-- `get_user_files`: Retrives the users file names from the File Server.<br>
+- `get_files`: Retrives the files associated with the user from the File Server.<br>
 User must be logged in to call this service.<br>
 Returns the *file names* and the *file IDs* for the user.
 
-- `get_user_pubkeys`: Retrieves public keys of the specified users in the system.<br>
-User must be logged in to call this service.<br>
-Receives a *list of usernames*.<br>
-Returns the *public keys* of the requested usernamed users.
-
-- `report_integrity_error`: Signals the Log Server of a failed atempt to process a file.<br>
+- `report_file`: Signals the Log Server of a failed atempt to process a file.<br>
 User must be logged in to call this service.<br>
 Receives the *file ID*.
+
+- `get_users`: Retrieves the users associated with a given file.<br>
+User must be logged in to call this service.<br>
+Receives a *file_id*.<br>
+Returns the *usernames* and *public keys* of the users that can contribute to that file.
 
 **Extra services**
 
@@ -52,17 +67,25 @@ Receives a *file ID* and a list of *usernames*.
 
 ## Files Server
 
+| REST Call       | URLs                           | Method |
+| :-------------- | :----------------------------- | :----- |
+| `upload_file`   | `api/files/`                   | POST   |
+| `update_file`   | `api/files/<fid>/`             | PUT    |
+| `get_file`      | `api/files/<fid>/users/<uid>/` | GET    |
+| `recover_data`  | `api/data/recover/<bsid>/`     | GET    |
+| `get_data`      | `api/data/`                    | GET    |
+
 ### Services to Logs Server
 
-- `create_file`: Submits a new file to the system to be stored.<br>
-Receives the *user ID*, *encrypted file*, a list of *encrypted keys* to the file and a *list of user IDs* that can contribute to the file.<br>
+- `upload_file`: Submits a new file to the system to be stored.<br>
+Receives the *encrypted file*, a list of *encrypted keys* to the file and a *list of user IDs* that can contribute to the file.<br>
 Returns the new *file ID*.
 
 - `update_file`: Updates a file in the system.<br>
-Receives the *user ID*, the *file ID*, the *encrypted file* and a list of *encrypted keys* to the file.
+Receives the *file ID*, the *encrypted file*, a list of *encrypted keys* to the file and a *list of user IDs* that can contribute to the file.
 
 - `get_file`: Retrieves a file in the system.<br>
-Receives a *user ID* and a *file ID*.<br>
+Receives a *file ID* and a *user ID*.<br>
 Returns the requested *file data* and *file key* for the user.
 
 - `recover_data`: Performs a full recovery of the data contained within the Files Server.<br>
@@ -75,6 +98,11 @@ Returns the *files data*.
 
 ## Backup Servers
 
+| REST Call       | URLs                           | Method |
+| :-------------- | :----------------------------- | :----- |
+| `backup_data`   | `api/data/backup/`             | GET    |
+| `get_data`      | `api/data/`                    | GET    |
+
 ### Services to Logs Server
 
 - `backup_data`: Performs a full backup of the data in the Files Server.<br>
@@ -84,5 +112,5 @@ Returns the *Backup Server ID* and a *completion status* of the backup.
 
 ### Services to Files Server
 
-- `get_data`: Retrieves the backup files data from a Backup Server.
+- `get_data`: Retrieves the backup files data from a Backup Server.<br>
 Returns the stored *backup files data*.
