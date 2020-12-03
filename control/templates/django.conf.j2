@@ -1,10 +1,9 @@
-NameVirtualHost *:80
 <VirtualHost *:80>
-    ServerName  
-    Redirect / https://{{ ansible_hostname }}:443
+    ServerName  {{ ansible_hostname }}
+    Redirect / https://{{ ansible_hostname }}:443/
 </VirtualHost>
 
-<VirtualHost _default_:443>>
+<VirtualHost _default_:443>
     SSLEngine on
     SSLCertificateFile /etc/ssl/certs/{{ ansible_hostname }}.crt
     SSLCertificateKeyFile /etc/ssl/certs/{{ ansible_hostname }}.key
@@ -25,7 +24,7 @@ NameVirtualHost *:80
     WSGIApplicationGroup {{ ansible_hostname }}_server
     WSGIPassAuthorization On
     WSGIApplicationGroup %{GLOBAL}
-    WSGIScriptAlias / {{ ansible_hostname }}server/{{ ansible_hostname }}server/wsgi.py
+    WSGIScriptAlias / /var/repo/{{ ansible_hostname }}server/{{ ansible_hostname }}server/wsgi.py
 
     <Location "/">
     Require all granted

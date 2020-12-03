@@ -4,6 +4,8 @@
   gather_facts: yes
 
   tasks:
+
+
     - name: disable apache default conf
       shell: /usr/sbin/a2dissite 000-default.conf
       notify: apache reload
@@ -24,4 +26,4 @@
     - name: apache reload
       service:
         name: apache2
-        state: reloaded
+        state: restarted
