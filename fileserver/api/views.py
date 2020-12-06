@@ -1,5 +1,3 @@
-from .serializers import FileSerializer, KeySerializer, GetFileSerializer, DataSerializer
-from .serializers import FileContentSerializer, FileDetailSerializer, KeySerializer
 import os
 import requests
 from sendfile import sendfile
@@ -14,6 +12,7 @@ from django.core import management
 
 from fileserver import utils
 from .models import File, Key
+from .serializers import FileContentSerializer, FileDetailSerializer, KeySerializer
 
 # ------------------------------------ #
 # Services to be called by Logs Server #

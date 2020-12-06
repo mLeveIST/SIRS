@@ -2,7 +2,7 @@ from django.db import models
 
 
 class File(models.Model):
-    efile = models.FileField(upload_to='%Y%m%d%H%M%S/')
+    file = models.FileField(upload_to='%Y%m%d%H%M%S/')
 
 
 class Key(models.Model):

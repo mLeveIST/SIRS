@@ -18,7 +18,7 @@ def register(username: str, password: str, pubkey) -> dict:
         "pubkey": pubkey_serialized
     }
 
-    response = requests.post(api_url("user/register/"), data=register_data)
+    response = requests.post(api_url("users/register/"), data=register_data)
     validate_response(response, raise_exception=True)
     return response.json()
 
@@ -29,14 +29,14 @@ def login(username: str, password: str) -> dict:
         "password": password
     }
 
-    response = requests.post(api_url("user/login/"), data=login_data)
+    response = requests.post(api_url("users/login/"), data=login_data)
     validate_response(response, raise_exception=True)
     return response.json()
 
 
 def list_files(token: str):
     headers = {'Authorization': 'Token {}'.format(token)}
-    response = requests.get(api_url("file/"), headers=headers)
+    response = requests.get(api_url("files/"), headers=headers)
     validate_response(response, raise_exception=True)
     return response.json()
 
@@ -46,7 +46,7 @@ def upload_file(token: str, efile: bytes, ekey: bytes, sign: bytes) -> dict:
     files_data = {'file': efile}
     data = {'key': bytes_to_string(ekey), 'sign': bytes_to_string(sign)}
 
-    response = requests.post(api_url("file/"), headers=headers, files=files_data, data=data)
+    response = requests.post(api_url("files/"), headers=headers, files=files_data, data=data)
     validate_response(response, raise_exception=True)
     return
 
@@ -56,12 +56,12 @@ def update_file(token: str, file_id: int, efile: bytes, ekey: bytes, version: in
     files_data = {'file': efile}
     data = {'key': bytes_to_string(ekey), 'version': version, 'sign': bytes_to_string(sign)}
 
-    response = requests.put(api_url("file/{}/".format(file_id)), headers=headers, files=files_data, data=data)
+    response = requests.put(api_url("files/{}/".format(file_id)), headers=headers, files=files_data, data=data)
 
 
 def download_file(token, file_id):
     headers = {'Authorization': 'Token {}'.format(token)}
-    response = requests.get(api_url("file/{}/".format(file_id)), headers=headers)
+    response = requests.get(api_url("files/{}/".format(file_id)), headers=headers)
     validate_response(response, raise_exception=True)
     return {'efile': response.content, 'ekey': string_to_bytes(response.headers['key'])}
 

@@ -17,7 +17,7 @@ class PGPKeyField(serializers.Field):
 class FileContentSerializer(serializers.ModelSerializer):
     class Meta:
         model = File
-        fields = ['efile']
+        fields = ['file']
 
 
 class KeySerializer(serializers.ModelSerializer):

@@ -52,7 +52,7 @@ def file_list(request):
 
 def get_file(request, file_id):
     user = utils.authenticated_user(request)
-    url = FILESERVER_URL + "file/{}/user/{}/".format(file_id, user.id)
+    url = FILESERVER_URL + "files/{}/users/{}/".format(file_id, user.id)
 
     r = requests.get(url)
     if r.status_code < 200 or r.status_code >= 300:
@@ -63,7 +63,7 @@ def get_file(request, file_id):
 
 def update_file(request, file_id):
     user = utils.authenticated_user(request)
-    url = FILESERVER_URL + "file/{}/user/{}/".format(file_id, user.id)
+    url = FILESERVER_URL + "files/{}/users/{}/".format(file_id, user.id)
 
     r = requests.put(url, files=request.FILES, data={'key': request.data["key"]})
     if r.status_code < 200 or r.status_code >= 300:
@@ -86,7 +86,7 @@ def update_file(request, file_id):
 
 def list_files(request):
     user = utils.authenticated_user(request)
-    url = FILESERVER_URL + "file/user/{}/".format(user.id)
+    url = FILESERVER_URL + "files/users/{}/".format(user.id)
 
     file_list = requests.get(url).json()
     q = Log.objects.filter(file_id__in=[f['id'] for f in file_list]).values(
@@ -102,7 +102,7 @@ def list_files(request):
 
 def upload_file(request):
     user = utils.authenticated_user(request)
-    url = FILESERVER_URL + "file/user/{}/".format(user.id)
+    url = FILESERVER_URL + "files/users/{}/".format(user.id)
 
     r = requests.post(url, files=request.FILES, data={'key': request.data["key"]})
     if r.status_code < 200 or r.status_code >= 300:

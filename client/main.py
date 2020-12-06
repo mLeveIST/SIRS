@@ -2,11 +2,11 @@
 
 from sys import argv
 from cryptography.hazmat.primitives import serialization
-from selectmenu import SelectMenu
 from getpass import getpass
 
 import api
 import utils
+from selectmenu import SelectMenu
 from encryption import generate_RSA_keys, encrypt_file, decrypt_file
 
 
@@ -100,7 +100,7 @@ def action_list_files():
 
 def action_exit():
     utils.clear_screen()
-    print("Thank you for using the best project for SIRS!")
+    print("Thank you for using the best project of SIRS!")
     print("Have a great day :)")
     print("\n")
     print("Exited successfully!")
