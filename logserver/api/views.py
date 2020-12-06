@@ -34,38 +34,38 @@ def get_pubkey(request, username):
 def file_details(request, file_id):
     # Includes get a specific file and update a file that already exists
     # Download or Update a specific file
+
+    if request.method == 'GET':
+        return get_file(request, file_id)
+
+    elif request.method == 'PUT':
+        return update_file(request, file_id)
+
+
+@api_view(['GET', 'POST'])
+def file_list(request):
+    if request.method == 'GET':
+        return list_files(request)
+    elif request.method == 'POST':
+        return upload_file(request)
+
+
+def get_file(request, file_id):
     user = utils.authenticated_user(request)
     url = FILESERVER_URL + "file/{}/user/{}/".format(file_id, user.id)
 
-    if request.method == 'GET':
-        r = requests.get(url)
-
-    elif request.method == 'PUT':
-        r = requests.put(url, files=request.FILES, data={'key': request.data["key"]})
-
-def get_file(request, file_id, url):
     r = requests.get(url)
-
     if r.status_code < 200 or r.status_code >= 300:
         return Response(r.content, status=r.status_code)
 
-    if request.method == 'PUT':
-        log_data = {
-            'file_id': file_id,
-            'user': user.id,
-            'ts': datetime.now(),
-            'sign': request.data['sign'],
-            'version': request.data['version']
-        }
-        log_serial = LogSerializer(data=log_data)
-        if not log_serial.is_valid():
-            return Response(log_serial.errors, status=status.HTTP_400_BAD_REQUEST)
-        log = log_serial.save()
+    return utils.requests_to_django(r)
 
 
-def upload_file(request, file_id, url, user):
+def update_file(request, file_id):
+    user = utils.authenticated_user(request)
+    url = FILESERVER_URL + "file/{}/user/{}/".format(file_id, user.id)
+
     r = requests.put(url, files=request.FILES, data={'key': request.data["key"]})
-
     if r.status_code < 200 or r.status_code >= 300:
         return Response(r.content, status=r.status_code)
 
@@ -73,7 +73,8 @@ def upload_file(request, file_id, url, user):
         'file_id': file_id,
         'user': user.id,
         'ts': datetime.now(),
-        'sign': request.data['sign']
+        'sign': request.data['sign'],
+        'version': request.data['version']
     }
     log_serial = LogSerializer(data=log_data)
     if not log_serial.is_valid():
@@ -83,48 +84,49 @@ def upload_file(request, file_id, url, user):
     return utils.requests_to_django(r)
 
 
-@api_view(['GET', 'POST'])
-def file_list(request):
+def list_files(request):
     user = utils.authenticated_user(request)
     url = FILESERVER_URL + "file/user/{}/".format(user.id)
 
-    if request.method == 'GET':
-        file_list = requests.get(url).json()
-        q = Log.objects.filter(file_id__in=[f['id'] for f in file_list]).values(
-            'file_id').annotate(version=Max('version'))
+    file_list = requests.get(url).json()
+    q = Log.objects.filter(file_id__in=[f['id'] for f in file_list]).values(
+        'file_id').annotate(version=Max('version'))
 
-        for file in file_list:
-            for log in q:
-                if file['id'] == log['file_id']:
-                    file['version'] = log['version']
+    for file in file_list:
+        for log in q:
+            if file['id'] == log['file_id']:
+                file['version'] = log['version']
 
-        return Response(file_list, status=status.HTTP_201_CREATED)
+    return Response(file_list, status=status.HTTP_200_OK)
 
-    elif request.method == 'POST':
-        r = requests.post(url, files=request.FILES, data={'key': request.data["key"]})
 
-        if r.status_code < 200 or r.status_code >= 300:
-            return Response(r.content, status=r.status_code)
+def upload_file(request):
+    user = utils.authenticated_user(request)
+    url = FILESERVER_URL + "file/user/{}/".format(user.id)
 
-        log_data = {
-            'file_id': r.json()['file_id'],
-            'user': user.id,
-            'ts': datetime.now(),
-            'sign': request.data['sign'],
-            'version': 1
-        }
-        log_serial = LogSerializer(data=log_data)
-        if not log_serial.is_valid():
-            return Response(log_serial.errors, status=status.HTTP_400_BAD_REQUEST)
-        log = log_serial.save()
+    r = requests.post(url, files=request.FILES, data={'key': request.data["key"]})
+    if r.status_code < 200 or r.status_code >= 300:
+        return Response(r.content, status=r.status_code)
 
-        return Response({'file_id': log.file_id}, status=status.HTTP_201_CREATED)
+    log_data = {
+        'file_id': r.json()['file_id'],
+        'user': user.id,
+        'ts': datetime.now(),
+        'sign': request.data['sign'],
+        'version': 1
+    }
+    log_serial = LogSerializer(data=log_data)
+    if not log_serial.is_valid():
+        return Response(log_serial.errors, status=status.HTTP_400_BAD_REQUEST)
+    log = log_serial.save()
+
+    return Response({'file_id': log.file_id}, status=status.HTTP_201_CREATED)
 
 
 # Auth views
 
 
-@ api_view(['POST'])
+@api_view(['POST'])
 def register(request):
     serial = RegisterSerializer(data=request.data)
     if not serial.is_valid():

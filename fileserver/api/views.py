@@ -24,9 +24,20 @@ from .models import File, Key
 def file_detail(request, user_id, file_id):
     # Includes get a specific file of a specific user and update a file that already exists
     if request.method == 'GET':
-        get_file(request, user_id, file_id)
+        return get_file(request, user_id, file_id)
     elif request.method == 'PUT':
-        update_file(request, user_id, file_id)
+        return update_file(request, user_id, file_id)
+
+
+@api_view(['GET', 'POST'])
+def file_list(request, user_id):
+    # Includes get all files of a specific user and a upload of a file
+    # At this time, no GET of all files is done, just upload file (POST)
+
+    if request.method == 'GET':
+        return list_files(request, user_id)
+    elif request.method == 'POST':
+        return upload_file(request, user_id)
 
 
 def get_file(request, user_id, file_id):
@@ -78,17 +89,6 @@ def list_files(request, user_id):
     files = File.objects.filter(key__user_id=user_id)
     serial = FileDetailSerializer(files, many=True)
     return Response(serial.data, status.HTTP_200_OK)
-
-
-@api_view(['GET', 'POST'])
-def file_list(request, user_id):
-    # Includes get all files of a specific user and a upload of a file
-    # At this time, no GET of all files is done, just upload file (POST)
-
-    if request.method == 'GET':
-        list_files(request, user_id)
-    elif request.method == 'POST':
-        upload_file(request, user_id)
 
 
 @api_view(['GET'])
