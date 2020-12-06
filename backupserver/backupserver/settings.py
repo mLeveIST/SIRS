@@ -10,10 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
-import os
+from pathlib import Path
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
@@ -41,6 +41,9 @@ INSTALLED_APPS = [
 
     # Django REST Framework apps
     'rest_framework',
+
+    # dbbackup apps
+    'dbbackup',
 
     # My apps
     'api',
@@ -83,7 +86,7 @@ WSGI_APPLICATION = 'backupserver.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
@@ -126,4 +129,18 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'files')
+# Media files
+
+MEDIA_ROOT = BASE_DIR / 'files'
+
+# Backup Settings
+
+DBBACKUP_STORAGE = 'django.core.files.storage.FileSystemStorage'
+DBBACKUP_STORAGE_OPTIONS = {'location': BASE_DIR / 'sharedfiles'}
+DBBACKUP_DATE_FORMAT = '%Y-%m-%d-%H%M%S%f'
+DBBACKUP_HOSTNAME = 'backup'
+DBBACKUP_FILENAME_TEMPLATE = 'db{databasename}-{servername}-{datetime}.{extension}'
+DBBACKUP_MEDIA_FILENAME_TEMPLATE = 'files-{servername}-{datetime}.{extension}'
+DBBACKUP_CLEANUP_KEEP=1
+DBBACKUP_CLEANUP_KEEP_MEDIA=1
+

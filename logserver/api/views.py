@@ -13,9 +13,14 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from .models import User, Log
 from .serializers import RegisterSerializer, LogSerializer, PubkeySerializer
 
+# TEMP
 FILESERVER_URL = "http://localhost:8001/api/"
 # FILESERVER_URL = "http://file/api/"
 # Create your views here.
+
+# ---------------------------------------- #
+# Services to be called by Client Machines #
+# ---------------------------------------- #
 
 
 @api_view(['GET'])
@@ -38,6 +43,9 @@ def file_details(request, file_id):
     elif request.method == 'PUT':
         r = requests.put(url, files=request.FILES, data={'key': request.data["key"]})
 
+def get_file(request, file_id, url):
+    r = requests.get(url)
+
     if r.status_code < 200 or r.status_code >= 300:
         return Response(r.content, status=r.status_code)
 
@@ -53,6 +61,24 @@ def file_details(request, file_id):
         if not log_serial.is_valid():
             return Response(log_serial.errors, status=status.HTTP_400_BAD_REQUEST)
         log = log_serial.save()
+
+
+def upload_file(request, file_id, url, user):
+    r = requests.put(url, files=request.FILES, data={'key': request.data["key"]})
+
+    if r.status_code < 200 or r.status_code >= 300:
+        return Response(r.content, status=r.status_code)
+
+    log_data = {
+        'file_id': file_id,
+        'user': user.id,
+        'ts': datetime.now(),
+        'sign': request.data['sign']
+    }
+    log_serial = LogSerializer(data=log_data)
+    if not log_serial.is_valid():
+        return Response(log_serial.errors, status=status.HTTP_400_BAD_REQUEST)
+    log = log_serial.save()
 
     return utils.requests_to_django(r)
 

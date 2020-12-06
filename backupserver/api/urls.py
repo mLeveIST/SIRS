@@ -1,6 +1,9 @@
 from django.urls import path
 from . import views
 
-urlpatterns = [
+app_name = 'api'
 
+urlpatterns = [
+	path('files/backup/', views.backup_data),
+	path('files/', views.get_data),
 ]

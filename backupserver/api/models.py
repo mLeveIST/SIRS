@@ -1,12 +1,11 @@
 from django.db import models
 
+
 class File(models.Model):
-	edata = models.FileField('Encrypted File Reference')
+	efile = models.FileField(upload_to='%Y%m%d%H%M%S/')
+
 
 class Key(models.Model):
-	file = models.ForeignKey(File, on_delete=models.CASCADE)
-	user = models.PositiveIntegerField()
-	evalue = models.CharField('Encrypted Key Value', max_length=100)
-
-class BackupLog(models.Model):
-	ts = models.DateTimeField('Last Backup Date', auto_now=True)
+	user_id = models.PositiveIntegerField()
+	file_id = models.ForeignKey(File, on_delete=models.CASCADE)
+	evalue = models.CharField(max_length=300)

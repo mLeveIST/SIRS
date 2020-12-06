@@ -1,4 +1,4 @@
-- hosts:  file
+- hosts: targets
   become: yes
   become_method: sudo
   gather_facts: yes
@@ -21,8 +21,8 @@
         cmd: mv {{ item }} /etc/ssl/certs
       with_items:
         - "{{ inventory_hostname }}.crt"
-        - "{{ inventory_hostname }}.csr"
         - "{{ inventory_hostname }}.key"
+        - "rootCA.crt"
 
     - name: remove ca keys
       shell:

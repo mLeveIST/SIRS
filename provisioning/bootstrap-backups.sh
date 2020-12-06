@@ -12,12 +12,15 @@ sudo apt-get -y python-dev
 sudo apt-get -y python-pip 
 sudo apt-get -y python3-pip
 
-# install ansible (http://docs.ansible.com/intro_installation.html)
-apt-add-repository -y ppa:ansible/ansible
-sudo apt-get update
-sudo apt-get -y install ansible
-
 sudo apt-get update && sudo apt-get upgrade -y
+
+# install key
+cat /vagrant/control/id_rsa.pub >> /home/vagrant/.ssh/authorized_keys
+cp /vagrant/control/root* /home/vagrant/
+sudo mkdir -p /var/repo
+cp -R /vagrant/backupserver /var/repo
+sudo chown -R www-data:www-data /var/repo/backupserver
+sudo rm -Rf /var/repo/backupserver/sharedfiles
 
 # configure hosts file for the internal network defined by Vagrantfile
 cat >> /etc/hosts <<EOL
@@ -28,17 +31,4 @@ cat >> /etc/hosts <<EOL
 192.168.57.13   file
 192.168.57.11   bs1
 192.168.57.12   bs2
-192.168.59.11   client1
-192.168.59.12   client2
-192.168.59.13   client3
-192.168.59.14   client4
 EOL
-
-ssh-keygen -t rsa -b 2048 -N "" -f ".ssh/id_rsa"
-chown vagrant:vagrant .ssh/id*
-cp .ssh/id* control/
-rm -f /etc/ssl/openssl.cnf
-cp /vagrant/control/openssl.cnf /etc/ssl/
-openssl genrsa -out rootCA.key 4096
-openssl req -x509 -new -nodes -key rootCA.key -sha256 -days 1024 -out rootCA.crt -subj "/C=PT/ST=Lisboa/L=Oeiras/O=IST/OU=SIRS/CN=sirs.rickerp.pt"
-mv root* control/

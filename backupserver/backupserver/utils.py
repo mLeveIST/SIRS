@@ -1,16 +1,7 @@
-import base64
-
-
-def bytes_to_string(ebytes: bytes) -> str:
-    return base64.b64encode(ebytes).decode()
-
-
-def string_to_bytes(text: str) -> bytes:
-    return base64.b64decode(text.encode())
-
+from django.core import management
 from pathlib import Path
 
-from django.core import management
+import os
 
 def backup_cmd(cmd, op=None):
 	if op:
@@ -33,3 +24,24 @@ def remove_files(path, depth=0):
 
 def empty_directory(path):
 	return not Path(path).exists()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

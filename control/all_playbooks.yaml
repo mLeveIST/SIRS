@@ -1,0 +1,5 @@
+---
+- import_playbook: add-ca.yaml
+- import_playbook: install.yaml
+- import_playbook: nfs.yaml
+- import_playbook: generate-keys.yaml

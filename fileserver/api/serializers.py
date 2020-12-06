@@ -17,7 +17,7 @@ class PGPKeyField(serializers.Field):
 class FileContentSerializer(serializers.ModelSerializer):
     class Meta:
         model = File
-        fields = ['file']
+        fields = ['efile']
 
 
 class KeySerializer(serializers.ModelSerializer):
@@ -40,3 +40,11 @@ class FileDetailSerializer(serializers.ModelSerializer):
             'name': instance.file.name.split('/')[-1],
             'size': instance.file.size
         }
+
+
+class DataSerializer(serializers.ModelSerializer):
+    keys = KeySerializer(source='key_set', many=True)
+
+    class Meta:
+        model = File
+        fields = ['id', 'efile', 'keys']

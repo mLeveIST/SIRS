@@ -4,16 +4,20 @@ from .models import File, Key
 
 
 class FileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = File
-        fields = ['id', 'edata']
+	class Meta:
+		model = File
+		fields = ['id', 'efile']
 
 
 class KeySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Key
-        fields = ['id', 'user', 'file', 'evalue']
+	class Meta:
+		model = Key
+		fields = ['file_id', 'user_id', 'evalue']
+		
 
+class DataSerializer(serializers.ModelSerializer):
+	ekeys = KeySerializer(source='key_set', many=True)
 
-class DataSerializer(serializers.Serializer):
-    pass
+	class Meta:
+		model = File
+		fields = ['id', 'efile', 'ekeys']

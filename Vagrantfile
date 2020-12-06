@@ -2,7 +2,6 @@
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
-
   config.ssh.insert_key = false
   config.vbguest.auto_update = false
   config.vm.box_check_update = false  
@@ -32,6 +31,7 @@ Vagrant.configure("2") do |config|
     end # of shared folders
     # Provisioning
     mgmt_config.vm.provision "shell", path: "provisioning/bootstrap-mgmt.sh"
+    
   end # of mgmt_config
 
   # create Log Server
@@ -50,12 +50,13 @@ Vagrant.configure("2") do |config|
     # Shared folders
     if Vagrant::Util::Platform.windows? then
       # Configuration SPECIFIC for Windows 10 hosts
-      log_config.vm.synced_folder "logserver", "/home/vagrant/logserver",
-      id: "vagrant-root", owner: "vagrant", group: "vagrant",
+      log_config.vm.synced_folder "logserver", "/var/repo/logserver",
+      id: "vagrant-root", owner: "www-data", group: "www-data",
       mount_options: ["dmode=775", "fmode=775"]
     else
       # Configuration for Unix/Linux hosts
-      log_config.vm.synced_folder "logserver", "/home/vagrant/logserver",
+      log_config.vm.synced_folder "logserver", "/var/repo/logserver",
+      owner: "www-data", group: "www-data",
       mount_options: ["dmode=775", "fmode=775"]
     end # of shared folders
     # Provisioning
@@ -78,12 +79,13 @@ Vagrant.configure("2") do |config|
     # Shared folders
     if Vagrant::Util::Platform.windows? then
       # Configuration SPECIFIC for Windows 10 hosts
-      file_config.vm.synced_folder "fileserver", "/home/vagrant/fileserver",
-      id: "vagrant-root", owner: "vagrant", group: "vagrant",
+      file_config.vm.synced_folder "fileserver", "/var/repo/fileserver",
+      id: "vagrant-root", owner: "www-data", group: "www-data",
       mount_options: ["dmode=775", "fmode=775"]
     else
       # Configuration for Unix/Linux hosts
-      file_config.vm.synced_folder "fileserver", "/home/vagrant/fileserver",
+      file_config.vm.synced_folder "fileserver", "/var/repo/fileserver",
+      owner: "www-data", group: "www-data",
       mount_options: ["dmode=775", "fmode=775"]
     end # of shared folders
     # Provisioning
@@ -108,19 +110,8 @@ Vagrant.configure("2") do |config|
           vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
           vb.customize ["modifyvm", :id, "--uartmode1", "file", File::NULL]
       end # of vb
-      # Shared folders
-      if Vagrant::Util::Platform.windows? then
-        # Configuration SPECIFIC for Windows 10 hosts
-        bs_config.vm.synced_folder "backupserver", "/home/vagrant/backupserver",
-        id: "vagrant-root", owner: "vagrant", group: "vagrant",
-        mount_options: ["dmode=775", "fmode=775"]
-      else
-        # Configuration for Unix/Linux hosts
-        bs_config.vm.synced_folder "backupserver", "/home/vagrant/backupserver",
-        mount_options: ["dmode=775", "fmode=775"]
-      end # of shared folders
       # Provisioning
-    bs_config.vm.provision "shell", path: "provisioning/bootstrap-servers.sh"
+    bs_config.vm.provision "shell", path: "provisioning/bootstrap-backups.sh"
     end # of  bs_config
   end # end of loop
 
