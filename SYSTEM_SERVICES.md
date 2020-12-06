@@ -2,16 +2,17 @@
 
 ## Logs Server
 
-| REST Call         | URLs                      | Method |
-| :---------------- | :------------------------ | :----- |
-| `register_user`   | `api/register/`           | POST   |
-| `login_user`      | `api/login/`              | POST   |
-| `create_file`\*   | `api/files/`              | POST   |
-| `update_file`\*\* | `api/files/<fid>/`        | PUT    |
-| `get_file`\*\*    | `api/files/<fid>/`        | GET    |
-| `get_files`\*     | `api/files/`              | GET    |
-| `report_file`     | `api/files/<fid>/report/` | GET    |
-| `get_users`       | `api/files/<fid>/users/`  | GET    |
+| REST Call         | URLs                       | Method |
+| :---------------- | :------------------------- | :----- |
+| `register_user`   | `api/users/register/`      | POST   |
+| `login_user`      | `api/users/login/`         | POST   |
+| `upload_file`\*   | `api/files/`               | POST   |
+| `update_file`\*\* | `api/files/<fid>/`         | PUT    |
+| `get_file`\*\*    | `api/files/<fid>/`         | GET    |
+| `get_files`\*     | `api/files/`               | GET    |
+| `report_file`     | `api/files/<fid>/report/`  | GET    |
+| `get_users`       | `api/files/<fid>/users/`   | GET    |
+| `get_user`        | `api/users/<str:username>` | GET    |
 
 ###### \* In practice, the used call is `files_detail`.
 ###### \*\* In practice, the used call is `file_detail`.
@@ -55,6 +56,11 @@ User must be logged in to call this service.<br>
 Receives a *file_id*.<br>
 Returns the *usernames* and *public keys* of the users that can contribute to that file.
 
+- `get_user`: Retrieves the user with the given username.<br>
+User must be logged in to call this service.<br>
+Receives a *username*.<br>
+Returns the *username* and *public key* of the user that user.
+
 **Extra services**
 
 - `add_contributors`: Adds a list of contributors to a file.<br>
@@ -78,7 +84,7 @@ Receives a *file ID* and a list of *usernames*.
 ### Services to Logs Server
 
 - `upload_file`: Submits a new file to the system to be stored.<br>
-Receives the *encrypted file*, a list of *encrypted keys* to the file and a *list of user IDs* that can contribute to the file.<br>
+Receives the *encrypted file*, a list of *encrypted keys* to the file and a list of *user IDs* that can contribute to the file.<br>
 Returns the new *file ID*.
 
 - `update_file`: Updates a file in the system.<br>

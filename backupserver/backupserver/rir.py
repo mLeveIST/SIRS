@@ -82,7 +82,7 @@ def check_digest(file: dict, log: dict) -> bool:
 				mgf=padding.MGF1(hashes.SHA256()),
 				salt_length=padding.PSS.MAX_LENGTH
 			),
-			utils.Prehashed(chosen_hash)
+			utils.Prehashed(hashes.SHA256())
 		)
 	except InvalidSignature:
 		print("Digest is not valid! Integrity error!")
