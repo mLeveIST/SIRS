@@ -16,13 +16,14 @@ control/rootCA.crt
 control/rootCA.key
 
 # client
-client/test_priv.pem
-client/test_pub.pem
+client/*.pem
 
 # Django
 db.sqlite3
 
+
 # Temporary
 migrations/
-fileserver/files
+fileserver/files/*
+backupserver/files/*
 

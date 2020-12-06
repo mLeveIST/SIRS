@@ -24,9 +24,9 @@ def generate_RSA_keys():
     return {'private': private_key, 'public': public_key}
 
 
-def encrypt_file(data: bytes, version: int, keypair: dict) -> dict:
-    private_key = keypair['private']
-    public_key = keypair['public']
+def encrypt_file(data: bytes, version: int, key_pair: dict) -> dict:
+    private_key = key_pair['private']
+    public_key = key_pair['public']
 
     random_key = AESGCM.generate_key(bit_length=256)  # also uses urandom()
     cipher = AESGCM(random_key)
@@ -65,15 +65,15 @@ def encrypt_file(data: bytes, version: int, keypair: dict) -> dict:
         utils.Prehashed(hashes.SHA256())
     )
 
-    return {'edata': edata, 'ekey': ekey + nonce, 'version': version, 'sign': signature}
+    return {'efile': edata, 'ekey': ekey + nonce, 'version': version, 'sign': signature}
 
 
-def decrypt_file(edata: bytes, pgp: bytes, keypair: dict):
-    private_key = keypair['private']
+def decrypt_file(edata: bytes, ekey: bytes, key_pair: dict):
+    private_key = key_pair['private']
     # Decrypt random key and get nonce
-    nonce = pgp[-12:]
+    nonce = ekey[-12:]
     random_key = private_key.decrypt(
-        pgp[:-12],
+        ekey[:-12],
         padding.OAEP(
             mgf=padding.MGF1(algorithm=hashes.SHA256()),
             algorithm=hashes.SHA256(),
@@ -92,7 +92,7 @@ def decrypt_file(edata: bytes, pgp: bytes, keypair: dict):
     return data
 
 
-# DEPRECATED
+"""DEPRECATED
 def encrypt_PGP_AES_CBC(data: bytes, version: bytes) -> tuple:
     random_key = os.urandom(RAND_KEY_SIZE // 8)
     iv = os.urandom(BLOCK_SIZE // 8)
@@ -164,3 +164,4 @@ def decrypt_PGP_AES_CBC(edata: bytes, ekey: bytes):
     data = unpadder.update(padded_data) + unpadder.finalize()
 
     return data
+"""

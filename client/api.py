@@ -1,19 +1,15 @@
 import requests
 from cryptography.hazmat.primitives import serialization
+from utils import validate_response, bytes_to_string, string_to_bytes
 
-server_ip = "http://localhost:8000"
+SERVER_IP = "localhost:8000"
 session_token = ""
 
 
-def is_response_status_ok(response) -> bool:
-    return 200 <= response.status_code < 300
+def api_url(route): return "http://{}/api/{}".format(SERVER_IP, route)
 
 
-def error_message(request, code, message):
-    return "Error in {} API request. Code: {}\nError message: {}".format(request, code, message)
-
-
-def register(username: str, password: str, pubkey) -> bool:
+def register(username: str, password: str, pubkey) -> dict:
     pubkey_serialized = pubkey.public_bytes(
         encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.PKCS1)
     register_data = {
@@ -22,57 +18,52 @@ def register(username: str, password: str, pubkey) -> bool:
         "pubkey": pubkey_serialized
     }
 
-    response = requests.post("{}/api/user/register/".format(server_ip), data=register_data)
-
-    if not is_response_status_ok(response):
-        raise RuntimeError(error_message('register', response.status_code, response.content))
-
+    response = requests.post(api_url("user/register/"), data=register_data)
+    validate_response(response, raise_exception=True)
     return response.json()
 
 
-def login(username: str, password: str) -> bool:
+def login(username: str, password: str) -> dict:
     login_data = {
         "username": username,
         "password": password
     }
 
-    response = requests.post("{}/api/user/login/".format(server_ip), data=login_data)
-
-    if not is_response_status_ok(response):
-        raise RuntimeError(error_message('login', response.status_code, response.content))
-
+    response = requests.post(api_url("user/login/"), data=login_data)
+    validate_response(response, raise_exception=True)
     return response.json()
 
 
-def upload_file(token, efile: bytes, ekey: bytes, version: int, sign: bytes) -> bool:
+def list_files(token: str):
+    headers = {'Authorization': 'Token {}'.format(token)}
+    response = requests.get(api_url("file/"), headers=headers)
+    validate_response(response, raise_exception=True)
+    return response.json()
+
+
+def upload_file(token: str, efile: bytes, ekey: bytes, sign: bytes) -> dict:
     headers = {'Authorization': 'Token {}'.format(token)}
     files_data = {'file': efile}
-    data = {'key': ekey, 'version': version, 'sign': sign}
+    data = {'key': bytes_to_string(ekey), 'sign': bytes_to_string(sign)}
 
-    response = requests.post("{}/api/file/".format(server_ip),
-                             headers=headers, files=files_data, data=data)
-
-    print(response.content)
-
-
-def update_file(file_id: int, keys: list) -> bool:
-    """
-    - Get file from file path
-    - Encrypt it with PGP
-    - Create digest of encrypted file, user keys, list of contributors
-    - Sign digest
-    - Create HTTP request with encrypted file, list of user keys encrypted, list of contributors
-    """
-    pass
+    response = requests.post(api_url("file/"), headers=headers, files=files_data, data=data)
+    validate_response(response, raise_exception=True)
+    return
 
 
-def get_file(file_id: int) -> bool:
-    """
-    - Create HTTP request with file_id
-    - Decrypt file with PGP
-    - Save file
-    """
-    pass
+def update_file(token: str, file_id: int, efile: bytes, ekey: bytes, version: int, sign: bytes) -> bool:
+    headers = {'Authorization': 'Token {}'.format(token)}
+    files_data = {'file': efile}
+    data = {'key': bytes_to_string(ekey), 'version': version, 'sign': bytes_to_string(sign)}
+
+    response = requests.put(api_url("file/{}/".format(file_id)), headers=headers, files=files_data, data=data)
+
+
+def download_file(token, file_id):
+    headers = {'Authorization': 'Token {}'.format(token)}
+    response = requests.get(api_url("file/{}/".format(file_id)), headers=headers)
+    validate_response(response, raise_exception=True)
+    return {'efile': response.content, 'ekey': string_to_bytes(response.headers['key'])}
 
 
 def get_user_certificates(usernames: list) -> list:

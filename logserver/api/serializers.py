@@ -24,8 +24,6 @@ class SignatureField(serializers.Field):
         return value.decode()
 
     def to_internal_value(self, data):
-        print((data,))
-        print((data.encode(),))
         return data.encode()
 
 
@@ -50,7 +48,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 class LogSerializer(serializers.ModelSerializer):
     class Meta:
         model = Log
-        fields = ['file_id', 'user', 'ts', 'sign']
+        fields = ['file_id', 'user', 'ts', 'sign', 'version']
 
     # def validate(self, data):
     #    pubkey = User.objects.get(data['user']).pubkey

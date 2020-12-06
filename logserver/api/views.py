@@ -2,6 +2,7 @@ import requests
 from logserver import utils
 from datetime import datetime
 
+from django.db.models import Max
 from rest_framework import status
 from django.shortcuts import render
 from rest_framework.response import Response
@@ -9,11 +10,11 @@ from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 
-from .models import User
+from .models import User, Log
 from .serializers import RegisterSerializer, LogSerializer, PubkeySerializer
 
 FILESERVER_URL = "http://localhost:8001/api/"
-#FILESERVER_URL = "http://file/api/"
+# FILESERVER_URL = "http://file/api/"
 # Create your views here.
 
 
@@ -29,10 +30,11 @@ def file_details(request, file_id):
     # Includes get a specific file and update a file that already exists
     # Download or Update a specific file
     user = utils.authenticated_user(request)
-    url = FILESERVER_URL + "file/{}/user/{}/".format(user.id, file_id)
+    url = FILESERVER_URL + "file/{}/user/{}/".format(file_id, user.id)
 
     if request.method == 'GET':
         r = requests.get(url)
+
     elif request.method == 'PUT':
         r = requests.put(url, files=request.FILES, data={'key': request.data["key"]})
 
@@ -44,7 +46,8 @@ def file_details(request, file_id):
             'file_id': file_id,
             'user': user.id,
             'ts': datetime.now(),
-            'sign': request.data['sign']
+            'sign': request.data['sign'],
+            'version': request.data['version']
         }
         log_serial = LogSerializer(data=log_data)
         if not log_serial.is_valid():
@@ -60,7 +63,16 @@ def file_list(request):
     url = FILESERVER_URL + "file/user/{}/".format(user.id)
 
     if request.method == 'GET':
-        return utils.requests_to_django(request.get(url))
+        file_list = requests.get(url).json()
+        q = Log.objects.filter(file_id__in=[f['id'] for f in file_list]).values(
+            'file_id').annotate(version=Max('version'))
+
+        for file in file_list:
+            for log in q:
+                if file['id'] == log['file_id']:
+                    file['version'] = log['version']
+
+        return Response(file_list, status=status.HTTP_201_CREATED)
 
     elif request.method == 'POST':
         r = requests.post(url, files=request.FILES, data={'key': request.data["key"]})
@@ -72,7 +84,8 @@ def file_list(request):
             'file_id': r.json()['file_id'],
             'user': user.id,
             'ts': datetime.now(),
-            'sign': request.data['sign']
+            'sign': request.data['sign'],
+            'version': 1
         }
         log_serial = LogSerializer(data=log_data)
         if not log_serial.is_valid():
@@ -85,7 +98,7 @@ def file_list(request):
 # Auth views
 
 
-@api_view(['POST'])
+@ api_view(['POST'])
 def register(request):
     serial = RegisterSerializer(data=request.data)
     if not serial.is_valid():

@@ -46,8 +46,7 @@ class SelectMenu(object):
 
         self.controller = SelectControl(self.choices)
 
-    def select(self, message=None):
-
+    def select_index(self, message=None):
         self.prompt_msg = message
 
         layout = self._get_layout()
@@ -71,33 +70,11 @@ class SelectMenu(object):
 
         finally:
             eventloop.close()
-            return self.controller.selected
+            return self.controller.selected_option_index
 
-    def select_action(self, message=None):
-        self.prompt_msg = message
+    def select(self, message=None): return self.choices[self.select_index(message)]
 
-        layout = self._get_layout()
-        style = self._get_style()
-        registry = set_key_binding(self.controller)
-
-        application = Application(
-            layout=layout,
-            style=style,
-            key_bindings_registry=registry
-        )
-
-        eventloop = create_eventloop()
-
-        try:
-            cli = CommandLineInterface(
-                application=application,
-                eventloop=eventloop
-            )
-            cli.run()
-
-        finally:
-            eventloop.close()
-            return self.actions[self.controller.selected_option_index]()
+    def select_action(self, message=None): return self.actions[self.select_index(message)]()
 
     def _get_layout(self):
 

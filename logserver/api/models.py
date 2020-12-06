@@ -44,5 +44,6 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
 class Log(models.Model):
     file_id = models.IntegerField()
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    ts = models.DateTimeField()
     sign = models.BinaryField()
+    ts = models.DateTimeField()
+    version = models.IntegerField()

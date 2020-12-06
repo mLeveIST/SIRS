@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 
 from sys import argv
-from encryption import generate_RSA_keys, encrypt_file, decrypt_file
 from cryptography.hazmat.primitives import serialization
 from selectmenu import SelectMenu
-import os
-import api
 from getpass import getpass
+
+import api
+import utils
+from encryption import generate_RSA_keys, encrypt_file, decrypt_file
+
+
+DEFAULT_PRIV_PATH = 'private.pem'
+
 
 token = None
 key_pair = None
@@ -18,10 +23,10 @@ def action_login():
 
     user = input("Username: ")
     pw = getpass("Password: ")
-    clear_screen()
+    utils.clear_screen()
 
     token = api.login(user, pw)["token"]
-    return mainMenu.select_action()
+    return mainMenu.select_action("Main Menu")
 
 
 def action_register(key_method):
@@ -37,42 +42,89 @@ def action_register(key_method):
     pw = getpass("Password: ")
     if pw != getpass("Confirm Password: "):
         raise ValueError("Passwords don't have the same value")
-    clear_screen()
+    utils.clear_screen()
 
     token = api.register(user, pw, key_pair['public'])['token']
-    return mainMenu.select_action()
-
-
-def load_keys():
-    priv_path = input("Private key path: ")
-    pub_path = input("Public key path: ")
-    clear_screen()
-
-    with open(priv_path, "rb") as priv_file:
-        priv_key = serialization.load_pem_private_key(priv_file.read(), password=None)
-
-    with open(pub_path, "rb") as pub_file:
-        pub_key = serialization.load_pem_public_key(pub_file.read())
-
-    return {'private': priv_key, 'public': pub_key}
+    return mainMenu.select_action("Main Menu")
 
 
 def action_upload_file():
     file_path = input("File path: ")
-    file = open(file_path, 'rb')
+    utils.clear_screen()
+    with open(file_path, "rb") as file:
+        edata = encrypt_file(file.read(), 1, key_pair)
 
-    payload = encrypt_file(file.read(), 1, key_pair)
+    api.upload_file(token, edata['efile'], edata['ekey'], edata['sign'])
+    print("Success: File Uploaded!")
+    return mainMenu.select_action("Main Menu")
 
-    api.upload_file(token, payload['edata'], payload['ekey'], payload['version'], payload['sign'])
+
+def action_download_file():
+    file_id = select_file()['id']
+
+    response = api.download_file(token, file_id)
+    file_bytes = decrypt_file(response['efile'], response['ekey'], key_pair)
+
+    with open(input("Save as: "), "wb") as file:
+        file.write(file_bytes)
+    utils.clear_screen()
+    print("Success: File Downloaded!")
+    return mainMenu.select_action("Main Menu")
 
 
-def clear_screen():
-    # for windows
-    if os.name == 'nt':
-        _ = os.system('cls')
-    # for mac and linux(here, os.name is 'posix')
-    else:
-        _ = os.system('clear')
+def action_update_file():
+    file_path = input("File path: ")
+    utils.clear_screen()
+    with open(file_path, "rb") as file:
+        file_selected = select_file()
+        edata = encrypt_file(file.read(), file_selected['version']+1, key_pair)
+
+    response = api.update_file(
+        token, file_selected['id'], edata['efile'], edata['ekey'], edata['version'], edata['sign'])
+
+    print("Success: File Updated!")
+    return mainMenu.select_action("Main Menu")
+
+
+def action_list_files():
+    utils.clear_screen()
+    file_list = api.list_files(token)
+    print("Files List\n")
+    for file in file_list:
+        print('ID: {} | Name: {} | Size: {} bytes'.format(file['id'], file['name'], file['size']))
+
+    input("\nPress any key to go back to the menu...")
+    utils.clear_screen()
+    return mainMenu.select_action("Main Menu")
+
+
+def action_exit():
+    utils.clear_screen()
+    print("Thank you for using the best project for SIRS!")
+    print("Have a great day :)")
+    print("\n")
+    print("Exited successfully!")
+    exit(0)
+
+
+def select_file():
+    file_list = api.list_files(token)
+    menu = SelectMenu(['ID: {} | Name: {} | Size: {} bytes'.format(
+        file['id'], file['name'], file['size']) for file in file_list])
+    return file_list[menu.select_index()]
+
+
+def load_keys():
+    priv_path = input("Private key path (empty for {}): ".format(DEFAULT_PRIV_PATH))
+    if priv_path == '':
+        priv_path = DEFAULT_PRIV_PATH
+
+    utils.clear_screen()
+
+    with open(priv_path, "rb") as priv_file:
+        priv_key = serialization.load_pem_private_key(priv_file.read(), password=None)
+
+    return {'private': priv_key, 'public': priv_key.public_key()}
 
 
 startMenu = SelectMenu()
@@ -84,35 +136,18 @@ registerMenu = SelectMenu({
 })
 
 startMenu = SelectMenu({
-    '1. Register': lambda: registerMenu.select_action("Key Selection"),
+    '1. Register': lambda: registerMenu.select_action("RSA Encryption Key"),
     '2. Login': action_login,
-    '0. Exit': exit
+    '0. Exit': action_exit
 })
 
 mainMenu = SelectMenu({
     '1. Upload file': action_upload_file,
-    '2. Download file': lambda: print("CONA"),
-    '0. Exit': exit
+    '2. Download file': action_download_file,
+    '3. Update file': action_update_file,
+    '4. List files': action_list_files,
+    '0. Exit': action_exit
 })
 
-clear_screen()
+utils.clear_screen()
 startMenu.select_action()
-
-
-"""
-def main(args: list):
-    data = b'Faz o PHP Manel!'
-    version = b'1'
-
-    to_send = encrypt_PGP_AES_GCM(data, version)
-    print(f"\nClient PGP Encryption:\n- edata: {to_send[0]}\n- ekey: {to_send[1]}")
-    print(f"- version: {to_send[2]}\n- signature: {to_send[3]}")
-
-    received_data = decrypt_PGP_AES_GCM(to_send[0], to_send[1])
-    print(f"\nClient PGP Decryption:\n- {received_data}\n")
-
-
-
-if __name__ == "__main__":
-    main(argv)
-"""
