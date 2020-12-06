@@ -41,8 +41,6 @@ INSTALLED_APPS = [
     # lib or frameworks
     'rest_framework',
     'rest_framework.authtoken',
-
-    # dbbackup apps
     'dbbackup',
 
     # My apps
@@ -140,6 +138,5 @@ DBBACKUP_DATE_FORMAT = '%Y-%m-%d-%H%M%S%f'
 DBBACKUP_HOSTNAME = 'backup'
 DBBACKUP_FILENAME_TEMPLATE = 'db{databasename}-{servername}-{datetime}.{extension}'
 DBBACKUP_MEDIA_FILENAME_TEMPLATE = 'files-{servername}-{datetime}.{extension}'
-DBBACKUP_CLEANUP_KEEP=1
-DBBACKUP_CLEANUP_KEEP_MEDIA=1
-
+DBBACKUP_CLEANUP_KEEP = 1
+DBBACKUP_CLEANUP_KEEP_MEDIA = 1
