@@ -89,4 +89,4 @@
 
   - name: change owner of sharedfiles
     shell:
-      cmd: chown www-data:www-data /var/repo/backupserver/sharedfiles
+      cmd: chown -h www-data:www-data /var/repo/backupserver/sharedfiles
