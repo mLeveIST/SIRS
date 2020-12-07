@@ -13,48 +13,39 @@ class RSAPublicKeyField(serializers.Field):
 
     def to_internal_value(self, data):
         key_serial = serialization.load_pem_public_key(data.encode())
-        # No error -> valid
         return key_serial.public_bytes(
             encoding=serialization.Encoding.DER,
             format=serialization.PublicFormat.PKCS1)
 
 
-class SignatureField(serializers.Field):
-    def to_representation(self, value):
-        return value.decode()
-
-    def to_internal_value(self, data):
-        return data.encode()
-
-
 class RegisterSerializer(serializers.ModelSerializer):
-    pubkey = RSAPublicKeyField()
+    pub_key = RSAPublicKeyField()
 
     class Meta:
         model = User
-        fields = ['username', 'password', 'pubkey']
+        fields = ['username', 'password', 'pub_key']
         extra_kwargs = {'password': {'write_only': True}}
 
     def save(self):
         user = User(
             username=self.validated_data['username'],
-            pubkey=self.validated_data['pubkey'],
+            pub_key=self.validated_data['pub_key'],
         )
         user.set_password(self.validated_data['password'])
         user.save()
         return user
 
 
+class PubKeySerializer(serializers.ModelSerializer):
+    pub_key = RSAPublicKeyField()
+
+    class Meta:
+        model = User
+        fields = ['username', 'pub_key']
+
+
 class LogSerializer(serializers.ModelSerializer):
     class Meta:
         model = Log
-        fields = ['file_id', 'user', 'ts', 'sign', 'version']
+        fields = ['user_id', 'file_id', 'version', 'timestamp', 'signature']
 
-    # def validate(self, data):
-    #    pubkey = User.objects.get(data['user']).pubkey
-
-
-class PubkeySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['pubkey']
