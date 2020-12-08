@@ -94,12 +94,8 @@ def get_file(request, user_id, file_id):
 
     file.open() # seek(0)
 
-    # path = os.path.join(settings.SENDFILE_ROOT, file.file.path)
-    # response = sendfile(request, path, attachment=True)
-
-    response = FileResponse(file, as_attachment=True)
-    response['Content-Length'] = file.size
-    response['Content-Type'] = 'application/octet-stream'
+    path = os.path.join(settings.SENDFILE_ROOT, file.path)
+    response = sendfile(request, path, attachment=True)
     response['key'] = KeyValueSerializer(key).data['key']
 
     return response

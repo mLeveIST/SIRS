@@ -131,8 +131,8 @@ STATIC_URL = '/static/'
 
 MEDIA_ROOT = BASE_DIR / 'files'
 
-# SENDFILE_BACKEND = 'sendfile.backends.development'
-# SENDFILE_ROOT = MEDIA_ROOT
+SENDFILE_BACKEND = 'sendfile.backends.development'
+SENDFILE_ROOT = MEDIA_ROOT
 
 # DBBACKUP_STORAGE = 'django.core.files.storage.FileSystemStorage'
 # DBBACKUP_STORAGE_OPTIONS = {'location': BASE_DIR / 'sharedfiles'}
