@@ -2,6 +2,7 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, utils
 
+from rest_framework import status
 from rest_framework.serializers import ValidationError
 
 from api.models import User, Log
@@ -35,7 +36,7 @@ def is_valid_upload_file_request(request, data: dict, users: list):
         users.append(u)
 
     try:
-        check_signature(request.FILES['efile'].read(), data, user, 1)
+        check_signature(request.FILES['file'].read(), data, user, 1)
     except InvalidSignature:
         raise ValidationError({'signature': [f"Integrity verification failed."]})
 
@@ -45,10 +46,13 @@ def is_valid_update_file_request(request, data: dict, file_id: int, users: list)
     user = request.user
     contributors = list(Log.objects.filter(file_id=file_id, version=0).values_list('user_id', flat=True))
 
-    print(f"CONT:{contributors}")
-
     if not contributors:
         raise ValidationError({'file_id': [f"File with id '{file_id}' does not exist."]})
+
+    if user.id not in contributors:
+        error = ValidationError({'response': [f"Permission Denied"]})
+        error.status_code = status.HTTP_403_FORBIDDEN
+        raise error
 
     if user.username != data['contributors'][0]['username']:
         raise ValidationError({'contributors': [f"User '{user.username}' missing."]})
@@ -77,7 +81,7 @@ def is_valid_update_file_request(request, data: dict, file_id: int, users: list)
         raise ValidationError({'version': [f"Wrong version. Got '{data['version']}', expected '{log.version + 1}'."]})
 
     try:
-        check_signature(request.FILES['efile'].read(), data, user, data['version'])
+        check_signature(request.FILES['file'].read(), data, user, data['version'])
     except InvalidSignature:
         raise ValidationError({'signature': [f"Integrity verification failed."]})
 

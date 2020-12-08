@@ -40,13 +40,23 @@ def register_user(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_users(request, file_id): # TODO - If file_id does not exist, return 404
+def get_users(request, file_id):
 
-    contributors = Log.objects \
+    contributors = list(Log.objects \
         .filter(file_id=file_id, version=0) \
-        .values_list('user_id', flat=True)
+        .values_list('user_id', flat=True))
 
-    users = User.objects.filter(pk__in=list(contributors))
+    if not contributors:
+        return Response(
+            {'file_id': [f"File with id '{file_id}' does not exist."]}, 
+            status=status.HTTP_404_NOT_FOUND)
+
+    if request.user.id not in contributors:
+        return Response(
+            {'response': [f"Permission Denied"]},
+            status=status.HTTP_403_FORBIDDEN)
+
+    users = User.objects.filter(pk__in=contributors)
 
     serial = PubKeySerializer(users, many=True)
     return Response(serial.data, status=status.HTTP_200_OK)
