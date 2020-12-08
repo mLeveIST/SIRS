@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.core import management
 from django.db import transaction
-from django.http import FileResponse, HttpResponse
+from django.http import FileResponse
 
 from json import loads
 
@@ -87,15 +87,22 @@ def get_files(request, user_id):
 
 
 @api_view(['GET'])
-def get_file(request, file_id, user_id):
-    pass
-    # # File download
-    # file = File.objects.get(id=file_id)
-    # key = Key.objects.get(user_id=user_id, file=file_id)
+def get_file(request, user_id, file_id):
+
+    file = File.objects.get(id=file_id).file
+    key = Key.objects.get(user_id=user_id, file_id=file_id)
+
+    file.open() # seek(0)
+
     # path = os.path.join(settings.SENDFILE_ROOT, file.file.path)
     # response = sendfile(request, path, attachment=True)
-    # response['key'] = KeySerializer(key).data['key']
-    # return response
+
+    response = FileResponse(file, as_attachment=True)
+    response['Content-Length'] = file.size
+    response['Content-Type'] = 'application/octet-stream'
+    response['key'] = KeyValueSerializer(key).data['key']
+
+    return response
 
 
 # --------------------------------------- #
