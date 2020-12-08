@@ -12,7 +12,7 @@ import requests
 
 def upload_file_to(url, request, data, users):
 
-	request.FILES['efile'].open() # seek(0)
+	request.FILES['file'].open() # seek(0)
 
 	for index, contributor in enumerate(data['contributors']):
 		contributor.pop('username')
@@ -25,7 +25,7 @@ def upload_file_to(url, request, data, users):
 
 def update_file_to(url, file_id, request, data, users):
 
-	request.FILES['efile'].open() # seek(0)
+	request.FILES['file'].open() # seek(0)
 
 	for index, contributor in enumerate(data['contributors']):
 		contributor.pop('username')

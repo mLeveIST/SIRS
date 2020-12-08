@@ -19,7 +19,6 @@ def remove_files(path, depth=0, remove_self=False):
     try:
         for node in root.glob('*'):
             if node.is_file():
-                print("HERE3")
                 node.unlink()
             else:
                 remove_files(node, depth=depth+1)

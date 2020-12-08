@@ -13,9 +13,8 @@ from rest_framework.serializers import ValidationError
 from sendfile import sendfile
 
 from fileserver import utils
-from .models import File, Key
-from .serializers import FileSerializer, KeySerializer, DataSerializer
-#from .serializers import FileContentSerializer, FileDetailSerializer, KeySerializer
+from .models import *
+from .serializers import *
 
 import os
 import requests
@@ -44,7 +43,7 @@ def upload_file(request):
             key_serial = KeySerializer(data={
                 'user_id': user['user_id'],
                 'file_id': file_id,
-                'evalue': user['key']
+                'key': user['key']
             })
 
             key_serial.is_valid(raise_exception=True)
@@ -70,7 +69,7 @@ def update_file(request, file_id):
             key = Key.objects.get(file_id=file_id , user_id=user['user_id'])
             key_serial = KeySerializer(
                 instance=key,
-                data={'evalue': user['key']},
+                data={'key': user['key']},
                 partial=True)
 
             key_serial.is_valid(raise_exception=True)
