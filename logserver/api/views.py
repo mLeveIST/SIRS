@@ -93,7 +93,6 @@ def upload_file(request):
     response = response.json()
 
     with transaction.atomic():
-        # Add initial logs for all contributors, to track who has access to the file
         timestamp = datetime.now()
         for user in users:
             log_serial = LogSerializer(data={
@@ -105,7 +104,6 @@ def upload_file(request):
             log_serial.is_valid(raise_exception=True)
             log_serial.save()
 
-        # Add log of file creation
         log_serial = LogSerializer(data={
             'user_id': request.user.id,
             'file_id': response['file_id'],
@@ -126,8 +124,6 @@ def update_file(request, file_id):
 
     utils.is_valid_update_file_request(request, data, file_id, users)
 
-    print("valid")
-
     version = data.pop('version')
     signature = data.pop('signature')
     response = update_file_to(FILESERVER_URL, file_id, request, data, users)
@@ -135,7 +131,6 @@ def update_file(request, file_id):
     if response.status_code != 204:
         return Response(response.content, status=response.status_code)
 
-    # Add log of file creation
     log_serial = LogSerializer(data={
         'user_id': request.user.id,
         'file_id': file_id,
@@ -149,24 +144,25 @@ def update_file(request, file_id):
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+def get_files(request):
+
+    response = get_files_from(FILESERVER_URL, request.user.id)
+
+    if response.status_code != 200:
+        return Response(response.content, status=response.status_code)
+
+    return Response(response.json(), status=status.HTTP_200_OK)
+
+
 def get_file(request, file_id):
     pass
-    # user = utils.authenticated_user(request)
     # url = FILESERVER_URL + "files/{}/users/{}/".format(file_id, user.id)
 
     # r = requests.get(url)
     # if r.status_code < 200 or r.status_code >= 300:
     #     return Response(r.content, status=r.status_code)
 
-    # return utils.requests_to_django(r)
 
-
-def get_files(request):
-    pass
-    # user = utils.authenticated_user(request)
-    # url = FILESERVER_URL + "files/users/{}/".format(user.id)
-
-    # file_list = requests.get(url).json()
     # q = Log.objects.filter(file_id__in=[f['id'] for f in file_list]).values(
     #     'file_id').annotate(version=Max('version'))
 
@@ -175,7 +171,7 @@ def get_files(request):
     #         if file['id'] == log['file_id']:
     #             file['version'] = log['version']
 
-    # return Response(file_list, status=status.HTTP_200_OK)
+    # return utils.requests_to_django(r)
 
 
 @api_view(['GET', 'POST'])

@@ -79,6 +79,14 @@ def update_file(request, file_id):
 
 
 @api_view(['GET'])
+def get_files(request, user_id):
+
+    files = File.objects.filter(key__user_id=user_id)
+    serial = FileInfoSerializer(files, many=True)
+    return Response(serial.data, status.HTTP_200_OK)
+
+
+@api_view(['GET'])
 def get_file(request, file_id, user_id):
     pass
     # # File download
@@ -88,15 +96,6 @@ def get_file(request, file_id, user_id):
     # response = sendfile(request, path, attachment=True)
     # response['key'] = KeySerializer(key).data['key']
     # return response
-
-
-@api_view(['GET'])
-def get_files(request, user_id):
-    pass
-    # # Listing of user files
-    # files = File.objects.filter(key__user_id=user_id)
-    # serial = FileDetailSerializer(files, many=True)
-    # return Response(serial.data, status.HTTP_200_OK)
 
 
 # --------------------------------------- #
