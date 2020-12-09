@@ -13,18 +13,9 @@ class RSAPublicKeyField(serializers.Field):
 
     def to_internal_value(self, data):
         key_serial = serialization.load_pem_public_key(data.encode())
-        # No error -> valid
         return key_serial.public_bytes(
             encoding=serialization.Encoding.DER,
             format=serialization.PublicFormat.PKCS1)
-
-
-class SignatureField(serializers.Field):
-    def to_representation(self, value):
-        return value.decode()
-
-    def to_internal_value(self, data):
-        return data.encode()
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -45,16 +36,24 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
+class PubKeySerializer(serializers.ModelSerializer):
+    pubkey = RSAPublicKeyField()
+
+    class Meta:
+        model = User
+        fields = ['username', 'pubkey']
+
+
 class LogSerializer(serializers.ModelSerializer):
     class Meta:
         model = Log
-        fields = ['file_id', 'user', 'ts', 'sign', 'version']
-
-    # def validate(self, data):
-    #    pubkey = User.objects.get(data['user']).pubkey
+        fields = ['user_id', 'file_id', 'version', 'timestamp', 'signature']
 
 
-class PubkeySerializer(serializers.ModelSerializer):
+class DataSerializer(serializers.ModelSerializer):
+    pub_key = RSAPublicKeyField()
+
     class Meta:
-        model = User
-        fields = ['pubkey']
+        model = Log
+        fields = ['user_id', 'file_id', 'version', 'signature', 'pub_key']
+

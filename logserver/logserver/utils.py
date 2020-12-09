@@ -1,22 +1,19 @@
-from django.core.exceptions import PermissionDenied
-from rest_framework.response import Response
-from django.http import HttpResponse
+from cryptography.hazmat.primitives import hashes
+from typing import List
+
+import base64
 
 
-def authenticated_user(request):
-    user = request.user
-    if not user.is_authenticated:
-        raise PermissionDenied("Not authenticated. Please login before using this request.")
-    return user
+def bytes_to_string(ebytes: bytes) -> str:
+    return base64.b64encode(ebytes).decode()
 
 
-def requests_to_django(response):
-    r = HttpResponse(
-        content=response.content,
-        status=response.status_code
-    )
+def string_to_bytes(text: str) -> bytes:
+    return base64.b64decode(text.encode())
 
-    for header, value in response.headers.items():
-        r[header] = value
 
-    return r
+def hash_data(data: List[bytes]) -> bytes:
+    hashfunc = hashes.Hash(hashes.SHA256())
+    for chunk in data:
+        hashfunc.update(chunk)
+    return hashfunc.finalize()
