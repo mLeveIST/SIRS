@@ -49,3 +49,11 @@ class LogSerializer(serializers.ModelSerializer):
         model = Log
         fields = ['user_id', 'file_id', 'version', 'timestamp', 'signature']
 
+
+class DataSerializer(serializers.ModelSerializer):
+    pub_key = RSAPublicKeyField()
+
+    class Meta:
+        model = Log
+        fields = ['user_id', 'file_id', 'version', 'signature', 'pub_key']
+

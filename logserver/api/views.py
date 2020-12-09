@@ -3,7 +3,7 @@ from json import loads
 
 from django.db import transaction
 from django.db.models import Max
-from django.http import HttpResponse
+from django.http import HttpResponse, FileResponse
 
 from rest_framework import status
 from rest_framework.authtoken.models import Token
@@ -16,13 +16,14 @@ from rest_framework.serializers import ValidationError
 from logserver import utils
 
 from .models import User, Log
-from .requests import upload_file_to, update_file_to, list_files_from, download_file_from
-from .validators import is_valid_upload_file_request, is_valid_update_file_request, is_valid_access
+from .requests import upload_file_to, update_file_to, list_files_from, download_file_from, get_file_data_from
+from .validators import is_valid_upload_file_request, is_valid_update_file_request, is_valid_access, is_valid_signature
 from .serializers import RegisterSerializer, PubKeySerializer, LogSerializer
 
-import requests
 
 FILESERVER_URL = "http://localhost:8001/api"
+BACKUPSERVER1_URL = "http://localhost:8002/api"
+BACKUPSERVER2_URL = "http://localhost:8003/api"
 
 
 # ---------------------------------------- #
@@ -31,6 +32,7 @@ FILESERVER_URL = "http://localhost:8001/api"
 
 @api_view(['POST'])
 def register_user(request):
+
     serial = RegisterSerializer(data=request.data)
 
     serial.is_valid(raise_exception=True)
@@ -193,5 +195,35 @@ def file_detail(request, file_id):
         return update_file(request, file_id)
 
 
-def report_file(request):
-    pass
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def report_file(request, file_id):
+    file_response = download_file(request, file_id)
+
+    if file_response.status_code != 200:
+        return Response(data_response.content, status=data_response.status_code)
+
+    data_response = get_file_data_from(FILESERVER_URL, file_id)
+
+    if data_response.status_code != 200:
+        return Response(data_response.content, status=data_response.status_code)
+
+    log = Log.objects.filter(file_id=file_id).latest('timestamp')
+    data = {'contributors': data_response.json()['keys'], 'signature': log.signature}
+
+    try:
+        is_valid_signature(file_response.content, data, log.user_id, log.version)
+    except ValidationError:
+        #response = recover_data_from(FILESERVER_URL, 1)
+        return Response(status=status.HTTP_200_OK)
+
+    return Response({'file_id': [f"No integrity problems detected."]}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
+
+
+

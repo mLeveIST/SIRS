@@ -1,12 +1,8 @@
 from rest_framework import serializers
+
 from .models import File, Key
+
 from fileserver import utils
-
-import base64
-from cryptography.hazmat.primitives import serialization
-
-from rest_framework import serializers
-from .models import File, Key
 
 
 class PGPKeyField(serializers.Field):

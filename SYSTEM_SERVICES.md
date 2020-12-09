@@ -106,7 +106,7 @@ Returns the *files data*.
 
 | REST Call       | URLs                           | Method |
 | :-------------- | :----------------------------- | :----- |
-| `backup_data`   | `api/data/backup/`             | GET    |
+| `backup_data`   | `api/data/backup/`             | POST   |
 | `get_data`      | `api/data/`                    | GET    |
 
 ### Services to Logs Server

@@ -28,10 +28,7 @@ def is_valid_upload_file_request(request, data: dict, users: list):
 
         users.append(u)
 
-    try:
-        is_valid_signature(request.FILES['file'].read(), data, user, 1)
-    except InvalidSignature:
-        raise ValidationError({'signature': [f"Integrity verification failed."]})
+    is_valid_signature(request.FILES['file'].read(), data, user, 1)
 
 
 def is_valid_update_file_request(request, data: dict, file_id: int, users: list):
@@ -72,10 +69,7 @@ def is_valid_update_file_request(request, data: dict, file_id: int, users: list)
     if data['version'] != log.version + 1:
         raise ValidationError({'version': [f"Wrong version. Got '{data['version']}', expected '{log.version + 1}'."]})
 
-    try:
-        is_valid_signature(request.FILES['file'].read(), data, user, data['version'])
-    except InvalidSignature:
-        raise ValidationError({'signature': [f"Integrity verification failed."]})
+    is_valid_signature(request.FILES['file'].read(), data, user, data['version'])
 
 
 def is_valid_access(user_id: int, file_id: int, msg: dict, contributors=None) -> int:
@@ -97,22 +91,24 @@ def is_valid_access(user_id: int, file_id: int, msg: dict, contributors=None) ->
 
 
 def is_valid_signature(edata: bytes, data: dict, user, version: int):
+    try:
+        ekeys = [is_valid_encoding(contributor['key'], 'key')[:-12] for contributor in data['contributors']]
+        eversion = version.to_bytes((version.bit_length() + 7) // 8, 'big')
+        signature = is_valid_encoding(data['signature'], 'signature')
 
-    ekeys = [is_valid_encoding(contributor['key'], 'key')[:-12] for contributor in data['contributors']]
-    eversion = version.to_bytes((version.bit_length() + 7) // 8, 'big')
-    signature = is_valid_encoding(data['signature'], 'signature')
+        public_key = serialization.load_der_public_key(user.pubkey)
 
-    public_key = serialization.load_der_public_key(user.pubkey)
-
-    public_key.verify(
-        signature,
-        utils.hash_data([edata] + ekeys + [eversion]),
-        padding.PSS(
-            mgf=padding.MGF1(hashes.SHA256()),
-            salt_length=padding.PSS.MAX_LENGTH
-        ),
-        Prehashed(hashes.SHA256())
-    )
+        public_key.verify(
+            signature,
+            utils.hash_data([edata] + ekeys + [eversion]),
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            Prehashed(hashes.SHA256())
+        )
+    except InvalidSignature:
+        raise ValidationError({'signature': [f"Integrity verification failed."]})
 
 
 def is_valid_encoding(text: str, tag: str) -> bytes:

@@ -101,39 +101,41 @@ def download_file(request, user_id, file_id):
     return response
 
 
+@api_view(['GET'])
+def get_file_data(request, file_id):
+    serial = DataSerializer(File.objects.get(id=file_id))
+    return Response(serial.data, status=status.HTTP_200_OK)
+
 # --------------------------------------- #
 # Services to be called by Backup Servers #
 # --------------------------------------- #
 
 @api_view(['GET'])
 def recover_data(request, bserver_id):
-    pass
-    # r = requests.get(f"http://localhost:800{bserver_id}/api/files/")  # TEMP
+    response = requests.get(f"http://localhost:800{bserver_id}/api/data/")
 
-    # if r.status_code < 200 or r.status_code >= 300:
-    #     return Response(status=r.status_code)
+    if response.status_code != 200:
+        return Response(status=response.status_code)
 
-    # if utils.empty_directory('sharedfiles'):
-    #     return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)  # TEMP
+    if utils.empty_directory('sharedfiles'):
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    # utils.remove_files('files')
-    # management.call_command('flush', verbosity=0, interactive=False)
+    utils.remove_files('files')
+    management.call_command('flush', verbosity=0, interactive=False)
 
-    # utils.backup_cmd('mediarestore')
-    # utils.backup_cmd('dbrestore')
+    utils.backup_cmd('mediarestore')
+    utils.backup_cmd('dbrestore')
 
-    # return Response(status=status.HTTP_200_OK)
+    return Response(status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
 def get_data(request):
-    pass
-    # # TODO only backup servers can call this function
+    # Compress files in .tar and db in .dump and put them in sharedfolder
+    utils.backup_cmd('mediabackup', '--clean')
+    utils.backup_cmd('dbbackup', '--clean')
 
-    # utils.backup_cmd('mediabackup', '--clean')
-    # utils.backup_cmd('dbbackup', '--clean')
+    serial = DataSerializer(File.objects.all(), many=True)
 
-    # file_data = DataSerializer(File.objects.all(), many=True)
-
-    # return Response(file_data.data, status=status.HTTP_200_OK)
+    return Response(serial.data, status=status.HTTP_200_OK)
 
