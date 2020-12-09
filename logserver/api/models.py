@@ -8,13 +8,13 @@ from rest_framework.authtoken.models import Token
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, username, pub_key, password=None):
+    def create_user(self, username, pubkey, password=None):
         if not username:
-            raise ValueError("Users must have an username!")
-        if not pub_key:
+            raise ValueError("Users must have a username!")
+        if not pubkey:
             raise ValueError("Users must have an associated public key!")
 
-        user = self.model(username=username, pub_key=pub_key) # Sanitize?
+        user = self.model(username=username, pubkey=pubkey)
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -22,7 +22,7 @@ class UserManager(BaseUserManager):
     def create_superuser(self, username, password):
         user = self.create_user(
             username=username,
-            pub_key=b'adminpubkey', # Will fail key serialization!
+            pubkey=b'adminpubkey',
             password=password
         )
         user.is_admin = True
@@ -33,7 +33,7 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser):
     username = models.CharField(max_length=30, unique=True)
-    pub_key = models.BinaryField(unique=True)
+    pubkey = models.BinaryField(unique=True)
 
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
@@ -60,7 +60,7 @@ def create_auth_token(sender, instance=None, created=False, **kwargs):
 
 
 class Log(models.Model):
-    user_id = models.ForeignKey(User, on_delete=models.CASCADE)
+    user_id = models.ForeignKey(User, db_column='user_id', on_delete=models.CASCADE)
     file_id = models.IntegerField()
     version = models.PositiveIntegerField()
     timestamp = models.DateTimeField()

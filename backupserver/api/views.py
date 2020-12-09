@@ -8,13 +8,14 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from backupserver import rir
 from backupserver import utils
+
 from .models import File, Key
 from .serializers import DataSerializer
+from .validators import check_integrity
 
-# TEMP
-FILESERVER_URL = "http://localhost:8001/api/"
+
+FILESERVER_URL = "http://localhost:8001/api"
 
 
 # ------------------------------------ #
@@ -23,20 +24,21 @@ FILESERVER_URL = "http://localhost:8001/api/"
 
 @api_view(['GET'])
 def backup_data(request):
-	# TODO only logs server can call this function
-	
-	r = requests.get(f"{FILESERVER_URL}files/") # TEMP
 
-	if r.status_code < 200 or r.status_code >= 300:
-		return Response(status=r.status_code)
+	data = loads(request.data['json'])
+
+	response = requests.get(f"{FILESERVER_URL}/data/")
+
+	if response.status_code != 200:
+		return Response(status=response.status_code)
 
 	if utils.empty_directory('sharedfiles'):
-		return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR) # TEMP
+		return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 	utils.backup_cmd('mediarestore')
 	utils.backup_cmd('dbrestore')
 
-	system_status = rir.check_integrity(r.json(), request.data)
+	system_status = check_integrity(response.json(), data)
 
 	if system_status:
 		utils.backup_cmd('mediabackup', '--output-path=backups/files_backup.tar')
@@ -54,9 +56,8 @@ def backup_data(request):
 
 @api_view(['GET'])
 def get_data(request):
-	# TODO only files server can call this function
-
-	# These 4 lines could be also be a 'cp'
+	
+	# These 4 lines could also be a 'cp'
 	utils.backup_cmd('mediarestore', '--input-path=backups/files_backup.tar')
 	utils.backup_cmd('dbrestore', '--input-path=backups/db_backup.dump')
 

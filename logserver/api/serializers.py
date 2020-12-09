@@ -19,33 +19,49 @@ class RSAPublicKeyField(serializers.Field):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    pub_key = RSAPublicKeyField()
+    pubkey = RSAPublicKeyField()
 
     class Meta:
         model = User
-        fields = ['username', 'password', 'pub_key']
+        fields = ['username', 'password', 'pubkey']
         extra_kwargs = {'password': {'write_only': True}}
 
     def save(self):
         user = User(
             username=self.validated_data['username'],
-            pub_key=self.validated_data['pub_key'],
+            pubkey=self.validated_data['pubkey'],
         )
         user.set_password(self.validated_data['password'])
         user.save()
         return user
 
 
-class PubKeySerializer(serializers.ModelSerializer):
-    pub_key = RSAPublicKeyField()
+class UserSerializer(serializers.ModelSerializer):
+    pubkey = RSAPublicKeyField()
 
     class Meta:
         model = User
-        fields = ['username', 'pub_key']
+        fields = ['username', 'pubkey']
+
+
+class PubKeySerializer(serializers.ModelSerializer):
+    pubkey = RSAPublicKeyField()
+
+    class Meta:
+        model = User
+        fields = ['pubkey']
 
 
 class LogSerializer(serializers.ModelSerializer):
     class Meta:
         model = Log
         fields = ['user_id', 'file_id', 'version', 'timestamp', 'signature']
+
+
+class DataSerializer(serializers.ModelSerializer):
+    pubkey = PubKeySerializer(source='user_id', read_only=True)
+
+    class Meta:
+        model = Log
+        fields = ['file_id', 'user_id', 'version', 'signature', 'pubkey']
 

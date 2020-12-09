@@ -34,13 +34,29 @@ def update_file_to(url, file_id, request, data, users):
 	return requests.put(f'{url}/files/{file_id}/', files=request.FILES, data=jdata)
 
 
-def get_files_from(url, user_id):
+def list_files_from(url, user_id):
 	return requests.get(f'{url}/users/{user_id}/files/')
 
 
-def get_file_from(url, user_id, file_id):
+def download_file_from(url, user_id, file_id):
 	return requests.get(f'{url}/users/{user_id}/files/{file_id}/')
 
+
+def get_file_data_from(url, file_id):
+	return requests.get(f'{url}/data/{file_id}/')
+
+
+def backup_data_to(urls, data):
+	responses = []
+	jdata = {'json': json.dumps(data)}
+
+	for url in urls:
+		response = requests.post(f'{url}/data/backup/', data=jdata)
+		responses.append(response)
+
+
+def recover_data_from(url, buserver_id):
+	return requests.get(f'{url}/data/recover/{buserver_id}/')
 
 
 

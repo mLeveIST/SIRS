@@ -24,5 +24,5 @@ def file_update(sender, **kwargs):
 
 class Key(models.Model):
 	user_id = models.IntegerField(validators=[MinValueValidator(1)])
-	file_id = models.ForeignKey(File, on_delete=models.CASCADE)
+	file_id = models.ForeignKey(File, db_column='file_id', on_delete=models.CASCADE)
 	key = models.BinaryField(unique=True)
