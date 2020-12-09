@@ -2,7 +2,7 @@ from datetime import datetime
 from json import loads
 
 from django.db import transaction
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.http import HttpResponse, FileResponse
 
 from rest_framework import status
@@ -18,7 +18,7 @@ from logserver import utils
 from .models import User, Log
 from .requests import upload_file_to, update_file_to, list_files_from, download_file_from, get_file_data_from
 from .validators import is_valid_upload_file_request, is_valid_update_file_request, is_valid_access, is_valid_signature
-from .serializers import RegisterSerializer, PubKeySerializer, LogSerializer
+from .serializers import RegisterSerializer, UserSerializer, LogSerializer, DataSerializer
 
 
 FILESERVER_URL = "http://localhost:8001/api"
@@ -57,7 +57,7 @@ def get_file_contributors(request, file_id):
 
     users = User.objects.filter(pk__in=contributors)
 
-    serial = PubKeySerializer(users, many=True)
+    serial = UserSerializer(users, many=True)
     return Response(serial.data, status=status.HTTP_200_OK)
 
 
@@ -71,7 +71,7 @@ def get_user_pubkey(request, username):
             {'username': [f"User '{username}' does not exist."]}, 
             status=status.HTTP_404_NOT_FOUND)
 
-    serial = PubKeySerializer(user)
+    serial = UserSerializer(user)
     return Response(serial.data, status=status.HTTP_200_OK)
 
 
@@ -201,7 +201,7 @@ def report_file(request, file_id):
     file_response = download_file(request, file_id)
 
     if file_response.status_code != 200:
-        return Response(data_response.content, status=data_response.status_code)
+        return Response(file_response.content, status=file_response.status_code)
 
     data_response = get_file_data_from(FILESERVER_URL, file_id)
 
@@ -220,7 +220,28 @@ def report_file(request, file_id):
     return Response({'file_id': [f"No integrity problems detected."]}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(['GET'])
+def backup_data(request):
+    query_set = Log.objects.values('file_id').annotate(max_timestamp=Max('timestamp')).order_by('file_id')
+    query_filter = Q()
 
+    for entry in query_set:
+        query_filter |= (Q(file_id=entry['file_id']) & Q(timestamp=entry['max_timestamp']))
+
+    latest_logs = Log.objects.filter(query_filter)
+    serial = DataSerializer(latest_logs, many=True)
+
+    for entry in serial.data:
+        entry['contributors'] = list(Log.objects \
+            .filter(file_id=entry['file_id'], version=0) \
+            .values_list('user_id', flat=True) \
+            .order_by('user_id'))
+
+    print(serial.data)
+
+    return Response(serial.data, status=status.HTTP_200_OK)
+
+    data_response = backup_data_to(FILESERVER_URL, serial.data)
 
 
 

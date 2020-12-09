@@ -11,7 +11,6 @@ from logserver import utils
 
 
 def is_valid_upload_file_request(request, data: dict, users: list):
-
     user = request.user
 
     if user.username != data['contributors'][0]['username']:
@@ -32,7 +31,6 @@ def is_valid_upload_file_request(request, data: dict, users: list):
 
 
 def is_valid_update_file_request(request, data: dict, file_id: int, users: list):
-
     error_msg = {}
     user = request.user
     contributors = list(Log.objects.filter(file_id=file_id, version=0).values_list('user_id', flat=True))
@@ -73,7 +71,6 @@ def is_valid_update_file_request(request, data: dict, file_id: int, users: list)
 
 
 def is_valid_access(user_id: int, file_id: int, msg: dict, contributors=None) -> int:
-
     if not contributors:
         contributors = list(Log.objects \
             .filter(file_id=file_id, version=0) \

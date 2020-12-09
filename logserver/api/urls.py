@@ -15,5 +15,6 @@ urlpatterns = [
 	path('files/<int:file_id>/users/', views.get_file_contributors),
 	path('users/<str:username>/', views.get_user_pubkey),
 
-	path('files/<int:file_id>/report/', views.report_file)
+	path('files/<int:file_id>/report/', views.report_file),
+	path('files/backup/', views.backup_data),
 ]
