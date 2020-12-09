@@ -60,14 +60,14 @@ Vagrant.configure("2") do |config|
       mount_options: ["dmode=775", "fmode=775"]
     end # of shared folders
     # Provisioning
-    log_config.vm.provision "shell", path: "provisioning/bootstrap-servers.sh"
+    log_config.vm.provision "shell", path: "provisioning/bootstrap-logserver.sh"
   end # of log_config
 
   # create File Server
   config.vm.define "file" do |file_config|
     file_config.vm.box = "ubuntu/bionic64"
     file_config.vm.hostname = "file"
-    file_config.vm.network "private_network", ip: "192.168.57.13"
+    file_config.vm.network "private_network", ip: "192.168.57.11"
     file_config.vm.network "forwarded_port", guest: 8000, host: 8081
     file_config.vm.provider "virtualbox" do |vb|
         vb.name = "file"
@@ -89,7 +89,7 @@ Vagrant.configure("2") do |config|
       mount_options: ["dmode=775", "fmode=775"]
     end # of shared folders
     # Provisioning
-    file_config.vm.provision "shell", path: "provisioning/bootstrap-servers.sh"
+    file_config.vm.provision "shell", path: "provisioning/bootstrap-fileserver.sh"
   end # of file_config
 
   (1..2).each do |i|
@@ -99,7 +99,7 @@ Vagrant.configure("2") do |config|
       # Assign a friendly name to this host VM
       bs_config.vm.hostname = "bs#{i}"
       # Create a private network, which allows host-only access to the machine
-      bs_config.vm.network "private_network", ip: "192.168.57.1#{i}"
+      bs_config.vm.network "private_network", ip: "192.168.58.1#{i}"
       bs_config.vm.network "forwarded_port", guest: 8000, host: 8081 + i
       # Provider-specific configuration so you can fine-tune various
       bs_config.vm.provider "virtualbox" do |vb|
