@@ -12,8 +12,8 @@ urlpatterns = [
 	path('files/', views.files_detail),
 	path('files/<int:file_id>/', views.file_detail),
 
-	path('files/<int:file_id>/users/', views.get_users),
-	path('users/<str:username>/', views.get_user),
+	path('files/<int:file_id>/users/', views.get_file_contributors),
+	path('users/<str:username>/', views.get_user_pubkey),
 
 	path('files/<int:file_id>/report/', views.report_file)
 ]

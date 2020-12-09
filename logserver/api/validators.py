@@ -102,7 +102,7 @@ def is_valid_signature(edata: bytes, data: dict, user, version: int):
     eversion = version.to_bytes((version.bit_length() + 7) // 8, 'big')
     signature = is_valid_encoding(data['signature'], 'signature')
 
-    public_key = serialization.load_der_public_key(user.pub_key)
+    public_key = serialization.load_der_public_key(user.pubkey)
 
     public_key.verify(
         signature,

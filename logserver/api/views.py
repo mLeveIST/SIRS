@@ -16,7 +16,7 @@ from rest_framework.serializers import ValidationError
 from logserver import utils
 
 from .models import User, Log
-from .requests import upload_file_to, update_file_to, get_files_from, get_file_from
+from .requests import upload_file_to, update_file_to, list_files_from, download_file_from
 from .validators import is_valid_upload_file_request, is_valid_update_file_request, is_valid_access
 from .serializers import RegisterSerializer, PubKeySerializer, LogSerializer
 
@@ -43,11 +43,13 @@ def register_user(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_users(request, file_id):
-
+def get_file_contributors(request, file_id):
     error_msg = {}
+    contributors = list(Log.objects \
+            .filter(file_id=file_id, version=0) \
+            .values_list('user_id', flat=True))
 
-    error_code = is_valid_access(request.user.id, file_id, error_msg)
+    error_code = is_valid_access(request.user.id, file_id, error_msg, contributors)
     if error_code:
         return Response(error_msg, error_code)
 
@@ -59,8 +61,7 @@ def get_users(request, file_id):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_user(request, username):
-
+def get_user_pubkey(request, username):
     try:
         user = User.objects.get(username=username)
     except User.DoesNotExist:
@@ -73,7 +74,6 @@ def get_user(request, username):
 
 
 def upload_file(request):
-
     data = loads(request.data['json'])
     users = []
 
@@ -113,7 +113,6 @@ def upload_file(request):
 
 
 def update_file(request, file_id):
-    
     data = loads(request.data['json'])
     users = []
 
@@ -139,9 +138,8 @@ def update_file(request, file_id):
     return Response(status=response.status_code)
 
 
-def get_files(request):
-
-    response = get_files_from(FILESERVER_URL, request.user.id)
+def list_files(request):
+    response = list_files_from(FILESERVER_URL, request.user.id)
 
     if response.status_code != 200:
         return Response(response.content, status=response.status_code)
@@ -149,8 +147,7 @@ def get_files(request):
     return Response(response.json(), status=response.status_code)
 
 
-def get_file(request, file_id):
-
+def download_file(request, file_id):
     user = request.user
     error_msg = {}
 
@@ -158,12 +155,11 @@ def get_file(request, file_id):
     if error_code:
         return Response(error_msg, error_code)
 
-    response = get_file_from(FILESERVER_URL, user.id, file_id)
+    response = download_file_from(FILESERVER_URL, user.id, file_id)
 
     if response.status_code != 200:
         return Response(response.content, status=response.status_code)
 
-    # Adding version header to response
     response.headers['version'] = Log.objects \
         .filter(file_id=file_id) \
         .aggregate(version=Max('version'))['version']
@@ -182,9 +178,8 @@ def get_file(request, file_id):
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def files_detail(request):
-    
     if request.method == 'GET':
-        return get_files(request)
+        return list_files(request)
     elif request.method == 'POST':
         return upload_file(request)
 
@@ -192,9 +187,8 @@ def files_detail(request):
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def file_detail(request, file_id):
-
     if request.method == 'GET':
-        return get_file(request, file_id)
+        return download_file(request, file_id)
     elif request.method == 'PUT':
         return update_file(request, file_id)
 

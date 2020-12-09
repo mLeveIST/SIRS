@@ -79,7 +79,7 @@ def update_file(request, file_id):
 
 
 @api_view(['GET'])
-def get_files(request, user_id):
+def list_files(request, user_id):
 
     files = File.objects.filter(key__user_id=user_id)
     serial = FileInfoSerializer(files, many=True)
@@ -87,7 +87,7 @@ def get_files(request, user_id):
 
 
 @api_view(['GET'])
-def get_file(request, user_id, file_id):
+def download_file(request, user_id, file_id):
 
     file = File.objects.get(id=file_id).file
     key = Key.objects.get(user_id=user_id, file_id=file_id)
