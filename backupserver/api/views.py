@@ -15,7 +15,7 @@ from .serializers import DataSerializer
 from .validators import check_integrity
 
 
-FILESERVER_URL = "http://localhost:8001/api"
+FILESERVER_URL = "http://file/api"
 
 
 # ------------------------------------ #

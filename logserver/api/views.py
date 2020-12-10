@@ -21,9 +21,9 @@ from .validators import is_valid_upload_file_request, is_valid_update_file_reque
 from .serializers import RegisterSerializer, UserSerializer, LogSerializer, DataSerializer
 
 
-FILESERVER_URL = "http://localhost:8001/api"
-BACKUPSERVER1_URL = "http://localhost:8002/api"
-BACKUPSERVER2_URL = "http://localhost:8003/api"
+FILESERVER_URL = "http://file/api"
+BACKUPSERVER1_URL = "http://bs1/api"
+BACKUPSERVER2_URL = "http://bs2/api"
 
 
 # ---------------------------------------- #

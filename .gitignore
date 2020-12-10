@@ -30,3 +30,7 @@ fileserver/files/*
 backupserver/files/*
 fileserver/sharedfiles
 
+
+client/requirements.txt
+
+client/client.py
