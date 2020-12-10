@@ -2,7 +2,7 @@ from datetime import datetime
 from json import loads
 
 from django.db import transaction
-from django.db.models import Max, Q
+from django.db.models import Max, Q, F
 from django.http import HttpResponse, FileResponse
 
 from rest_framework import status
@@ -13,12 +13,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
-from logserver import utils
+from logserver.utils import requests_to_django
 
 from .models import User, Log
-from .requests import upload_file_to, update_file_to, list_files_from, download_file_from, get_file_data_from
-from .validators import is_valid_upload_file_request, is_valid_update_file_request, is_valid_access, is_valid_signature
+from .requests import upload_file_to, update_file_to, list_files_from, download_file_from, get_file_data_from, backup_data_to, recover_data_from
 from .serializers import RegisterSerializer, UserSerializer, LogSerializer, DataSerializer
+from .validators import is_valid_upload_file_request, is_valid_update_file_request, is_valid_access, is_valid_signature, validate_response
 
 
 FILESERVER_URL = "http://file/api"
@@ -32,7 +32,6 @@ BACKUPSERVER2_URL = "http://bs2/api"
 
 @api_view(['POST'])
 def register_user(request):
-
     serial = RegisterSerializer(data=request.data)
 
     serial.is_valid(raise_exception=True)
@@ -47,9 +46,11 @@ def register_user(request):
 @permission_classes([IsAuthenticated])
 def get_file_contributors(request, file_id):
     error_msg = {}
-    contributors = list(Log.objects \
-            .filter(file_id=file_id, version=0) \
-            .values_list('user_id', flat=True))
+
+    contributors = list(Log.objects
+                        .filter(file_id=file_id, version=0)
+                        .values_list('user_id', flat=True)
+                        .order_by('user_id'))
 
     error_code = is_valid_access(request.user.id, file_id, error_msg, contributors)
     if error_code:
@@ -68,7 +69,7 @@ def get_user_pubkey(request, username):
         user = User.objects.get(username=username)
     except User.DoesNotExist:
         return Response(
-            {'username': [f"User '{username}' does not exist."]}, 
+            {'username': [f"User '{username}' does not exist."]},
             status=status.HTTP_404_NOT_FOUND)
 
     serial = UserSerializer(user)
@@ -84,8 +85,8 @@ def upload_file(request):
     signature = data.pop('signature')
     response = upload_file_to(FILESERVER_URL, request, data, users)
 
-    if response.status_code != 201:
-        return Response(response.content, status=response.status_code)
+    if not validate_response(response, raise_exception=False):
+        return requests_to_django(response)
 
     response_data = response.json()
 
@@ -124,8 +125,8 @@ def update_file(request, file_id):
     signature = data.pop('signature')
     response = update_file_to(FILESERVER_URL, file_id, request, data, users)
 
-    if response.status_code != 204:
-        return Response(response.content, status=response.status_code)
+    if not validate_response(response, raise_exception=False):
+        return requests_to_django(response)
 
     log_serial = LogSerializer(data={
         'user_id': request.user.id,
@@ -143,10 +144,28 @@ def update_file(request, file_id):
 def list_files(request):
     response = list_files_from(FILESERVER_URL, request.user.id)
 
-    if response.status_code != 200:
-        return Response(response.content, status=response.status_code)
+    if not validate_response(response, raise_exception=False):
+        return requests_to_django(response)
 
-    return Response(response.json(), status=response.status_code)
+    files = response.json()
+
+    # Get latest log for each file
+    file_ids = [f['id'] for f in files]
+    q = Log.objects.filter(file_id__in=file_ids).values('file_id').annotate(max_version=Max('version')).order_by()
+    q_filter = Q()
+    for entry in q:
+        q_filter |= (Q(file_id=entry['file_id']) & Q(version=entry['max_version']))
+
+    latest_file_logs = Log.objects.filter(q_filter).annotate(contributor=F('user_id__username'))
+
+    for log in latest_file_logs:
+        for file in files:
+            if file['id'] == log.file_id:
+                file['version'] = log.version
+                file['contributor'] = log.contributor
+                break
+
+    return Response(files, status=status.HTTP_200_OK)
 
 
 def download_file(request, file_id):
@@ -215,7 +234,7 @@ def report_file(request, file_id):
         is_valid_signature(file_response.content, data, log.user_id, log.version)
     except ValidationError:
         #response = recover_data_from(FILESERVER_URL, 1)
-        return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_202_ACCEPTED)
 
     return Response({'file_id': [f"No integrity problems detected."]}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -237,14 +256,27 @@ def backup_data(request):
             .values_list('user_id', flat=True) \
             .order_by('user_id'))
 
-    print(serial.data)
+    data_responses = backup_data_to([BACKUPSERVER1_URL], serial.data) # Colocar na lista bakup server 2 tb
 
-    return Response(serial.data, status=status.HTTP_200_OK)
+    system_status = []
+    for response in data_responses:
+        if response.status_code != 200:
+            return Response(response.content, status=response.status_code)
 
-    data_response = backup_data_to(FILESERVER_URL, serial.data)
+        system_status.append(response.json()['system_status'])
 
+    if sum(system_status) == len(data_responses): # everything OK
+        return Response(status=status.HTTP_202_ACCEPTED)
+    elif sum(system_status) == 0: # file Server corruption
+        recovery = recover_data_from(FILESERVER_URL, 2) # Choose from who to recover from with round robin ?
+        if recovery.status_code != 200:
+            return Response(recovery.content, status=recovery.status_code)
+        return Response(status=status.HTTP_205_RESET_CONTENT)
+    else: # one backup server corrupt
+        pass
+        # Ignore?
+        # Place BU server in black list until a physical fix is done?
+        # Logs Server is not able to force BU Server to backup from FS
 
-
-
-
+    return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

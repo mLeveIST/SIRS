@@ -17,14 +17,16 @@ from prompt_toolkit.layout.containers import (
 from selectmenu.keybinding import set_key_binding
 from selectmenu.control import SelectControl
 
+import os
+
 
 class SelectMenu(object):
 
-    def __init__(self, choices=[], actions=[]):
+    def __init__(self, choices=[], actions=[], message=None):
         if len(choices) > 0:
-            self.add_choices(choices, actions)
+            self.add_choices(choices, actions, message)
 
-    def add_choices(self, choices, actions=[]):
+    def add_choices(self, choices, actions=[], message=None):
         if not isinstance(choices, (list, dict)):
             raise ValueError("The choices is not list nor a dict.")
 
@@ -44,10 +46,20 @@ class SelectMenu(object):
             self.choices = choices
             self.actions = actions
 
+        self.prompt_msg = message
         self.controller = SelectControl(self.choices)
 
-    def select_index(self, message=None):
-        self.prompt_msg = message
+    def select_index(self, message=None, clear_before=False):
+        if clear_before:
+            # for windows
+            if os.name == 'nt':
+                _ = os.system('cls')
+            # for mac and linux(here, os.name is 'posix')
+            else:
+                _ = os.system('clear')
+
+        if message != None:
+            self.prompt_msg = message
 
         layout = self._get_layout()
         style = self._get_style()
@@ -72,9 +84,11 @@ class SelectMenu(object):
             eventloop.close()
             return self.controller.selected_option_index
 
-    def select(self, message=None): return self.choices[self.select_index(message)]
+    def select(self, message=None, clear_before=False):
+        return self.choices[self.select_index(message, clear_before)]
 
-    def select_action(self, message=None): return self.actions[self.select_index(message)]()
+    def select_action(self, message=None, clear_before=False):
+        return self.actions[self.select_index(message, clear_before)]()
 
     def _get_layout(self):
 

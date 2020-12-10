@@ -4,6 +4,6 @@ from . import views
 app_name = 'api'
 
 urlpatterns = [
-	path('files/backup/', views.backup_data),
-	path('files/', views.get_data),
+	path('data/backup/', views.backup_data),
+	path('data/', views.get_data),
 ]
