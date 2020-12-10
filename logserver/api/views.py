@@ -16,7 +16,7 @@ from rest_framework.serializers import ValidationError
 from logserver import utils
 
 from .models import User, Log
-from .requests import upload_file_to, update_file_to, list_files_from, download_file_from, get_file_data_from
+from .requests import upload_file_to, update_file_to, list_files_from, download_file_from, get_file_data_from, backup_data_to, recover_data_from
 from .validators import is_valid_upload_file_request, is_valid_update_file_request, is_valid_access, is_valid_signature
 from .serializers import RegisterSerializer, UserSerializer, LogSerializer, DataSerializer
 
@@ -32,7 +32,6 @@ BACKUPSERVER2_URL = "http://localhost:8003/api"
 
 @api_view(['POST'])
 def register_user(request):
-
     serial = RegisterSerializer(data=request.data)
 
     serial.is_valid(raise_exception=True)
@@ -49,7 +48,8 @@ def get_file_contributors(request, file_id):
     error_msg = {}
     contributors = list(Log.objects \
             .filter(file_id=file_id, version=0) \
-            .values_list('user_id', flat=True))
+            .values_list('user_id', flat=True) \
+            .order_by('user_id'))
 
     error_code = is_valid_access(request.user.id, file_id, error_msg, contributors)
     if error_code:
@@ -146,7 +146,7 @@ def list_files(request):
     if response.status_code != 200:
         return Response(response.content, status=response.status_code)
 
-    return Response(response.json(), status=response.status_code)
+    return Response(file_list, status=response.status_code)
 
 
 def download_file(request, file_id):
@@ -215,7 +215,7 @@ def report_file(request, file_id):
         is_valid_signature(file_response.content, data, log.user_id, log.version)
     except ValidationError:
         #response = recover_data_from(FILESERVER_URL, 1)
-        return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_202_ACCEPTED)
 
     return Response({'file_id': [f"No integrity problems detected."]}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -237,13 +237,29 @@ def backup_data(request):
             .values_list('user_id', flat=True) \
             .order_by('user_id'))
 
-    print(serial.data)
+    data_responses = backup_data_to([BACKUPSERVER1_URL], serial.data) # Colocar na lista bakup server 2 tb
 
-    return Response(serial.data, status=status.HTTP_200_OK)
+    system_status = []
+    for response in data_responses:
+        if response.status_code != 200:
+            return Response(response.content, status=response.status_code)
 
-    data_response = backup_data_to(FILESERVER_URL, serial.data)
+        system_status.append(response.json()['system_status'])
 
-
+    if sum(system_status) == len(data_responses): # everything OK
+        return Response(status=status.HTTP_202_ACCEPTED)
+    elif sum(system_status) == 0: # file Server corruption
+        recovery = recover_data_from(FILESERVER_URL, 2) # Choose from who to recover from with round robin ?
+        if recovery.status_code != 200:
+            return Response(recovery.content, status=recovery.status_code)
+        return Response(status=status.HTTP_205_RESET_CONTENT)
+    else: # one backup server corrupt
+        pass
+        # Ignore?
+        # Place BU server in black list until a physical fix is done?
+        # Logs Server is not able to force BU Server to backup from FS
+    print("HERE......")
+    return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 

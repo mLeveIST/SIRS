@@ -5,6 +5,8 @@ from pathlib import Path
 from django.core import management
 
 from rest_framework import status
+from json import loads
+
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -22,15 +24,15 @@ FILESERVER_URL = "http://localhost:8001/api"
 # Services to be called by Logs Server #
 # ------------------------------------ #
 
-@api_view(['GET'])
+@api_view(['POST'])
 def backup_data(request):
 
-	data = loads(request.data['json'])
+	logs_data = loads(request.data['json'])
 
-	response = requests.get(f"{FILESERVER_URL}/data/")
+	files_data = requests.get(f"{FILESERVER_URL}/data/")
 
-	if response.status_code != 200:
-		return Response(status=response.status_code)
+	if files_data.status_code != 200:
+		return Response(status=files_data.status_code)
 
 	if utils.empty_directory('sharedfiles'):
 		return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -38,7 +40,7 @@ def backup_data(request):
 	utils.backup_cmd('mediarestore')
 	utils.backup_cmd('dbrestore')
 
-	system_status = check_integrity(response.json(), data)
+	system_status = check_integrity(files_data.json(), logs_data)
 
 	if system_status:
 		utils.backup_cmd('mediabackup', '--output-path=backups/files_backup.tar')

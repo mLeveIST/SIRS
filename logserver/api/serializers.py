@@ -59,7 +59,7 @@ class LogSerializer(serializers.ModelSerializer):
 
 
 class DataSerializer(serializers.ModelSerializer):
-    pubkey = PubKeySerializer(source='user_id', read_only=True)
+    pubkey = RSAPublicKeyField(source='user_id.pubkey', read_only=True)
 
     class Meta:
         model = Log

@@ -17,9 +17,6 @@ from typing import List
 
 
 def check_integrity(files_db: list, logs_db: list) -> int:
-	print(files_db)
-	print(logs_db)
-	
 	if len(files_db) == 0 or len(logs_db) == 0:
 		return 0
 
@@ -62,7 +59,7 @@ def check_digest(file: dict, log: dict) -> bool:
 	ekeys = [utils.string_to_bytes(key['key'])[:-12] for key in file['keys']]
 	eversion = version.to_bytes((version.bit_length() + 7) // 8, 'big')
 
-	public_key = load_pem_public_key(utils.string_to_bytes(log['pubkey']))
+	public_key = load_pem_public_key(log['pubkey'].encode())
 	
 	if not isinstance(public_key, rsa.RSAPublicKey):
 		print("Error loading public key!")
@@ -70,7 +67,7 @@ def check_digest(file: dict, log: dict) -> bool:
 
 	try:
 		public_key.verify(
-			log['signature'],
+			utils.string_to_bytes(log['signature']),
 			utils.hash_data([edata] + ekeys + [eversion]),
 			padding.PSS(
 				mgf=padding.MGF1(hashes.SHA256()),

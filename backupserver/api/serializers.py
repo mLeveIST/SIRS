@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from .models import File, Key
 
-from fileserver import utils
+from backupserver import utils
 
 
 class PGPKeyField(serializers.Field):

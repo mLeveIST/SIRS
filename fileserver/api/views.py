@@ -20,6 +20,10 @@ import os
 import requests
 
 
+# URL TO BU SERVER IS USED IN RECOVER_DATA CALL BELLOW
+# UPDATE IT IN PRODUCTION
+
+
 # ------------------------------------ #
 # Services to be called by Logs Server #
 # ------------------------------------ #
