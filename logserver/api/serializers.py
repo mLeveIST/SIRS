@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Log
+from .models import User, Log, Backup
 
 from cryptography.hazmat.primitives import serialization
 
@@ -44,18 +44,16 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['username', 'pubkey']
 
 
-class PubKeySerializer(serializers.ModelSerializer):
-    pubkey = RSAPublicKeyField()
-
-    class Meta:
-        model = User
-        fields = ['pubkey']
-
-
 class LogSerializer(serializers.ModelSerializer):
     class Meta:
         model = Log
         fields = ['user_id', 'file_id', 'version', 'timestamp', 'signature']
+
+
+class BackupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Backup
+        fields = ['timestamp', 'successful']
 
 
 class DataSerializer(serializers.ModelSerializer):

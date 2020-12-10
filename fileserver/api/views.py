@@ -20,10 +20,6 @@ import os
 import requests
 
 
-# URL TO BU SERVER IS USED IN RECOVER_DATA CALL BELLOW
-# UPDATE IT IN PRODUCTION
-
-
 # ------------------------------------ #
 # Services to be called by Logs Server #
 # ------------------------------------ #
@@ -116,7 +112,8 @@ def get_file_data(request, file_id):
 
 @api_view(['GET'])
 def recover_data(request, bserver_id):
-    response = requests.get(f"http://localhost:800{bserver_id}/api/data/")
+    # response = requests.get(f"https://bs{bserver_id}/api/data/") # For prod
+    response = requests.get(f"http://localhost:800{bserver_id}/api/data/") # For dev
 
     if response.status_code != 200:
         return Response(status=response.status_code)
@@ -135,7 +132,6 @@ def recover_data(request, bserver_id):
 
 @api_view(['GET'])
 def get_data(request):
-    # Compress files in .tar and db in .dump and put them in sharedfolder
     utils.backup_cmd('mediabackup', '--clean')
     utils.backup_cmd('dbbackup', '--clean')
 

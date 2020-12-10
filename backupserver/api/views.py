@@ -17,7 +17,8 @@ from .serializers import DataSerializer
 from .validators import check_integrity
 
 
-FILESERVER_URL = "http://file/api"
+# FILESERVER_URL = "https://log/api" # For Prod
+FILESERVER_URL = "http://localhost:8001/api" # For dev
 
 
 # ------------------------------------ #
@@ -58,8 +59,6 @@ def backup_data(request):
 
 @api_view(['GET'])
 def get_data(request):
-	
-	# These 4 lines could also be a 'cp'
 	utils.backup_cmd('mediarestore', '--input-path=backups/files_backup.tar')
 	utils.backup_cmd('dbrestore', '--input-path=backups/db_backup.dump')
 
