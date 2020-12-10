@@ -66,7 +66,7 @@ def check_digest(file: dict, log: dict) -> bool:
 	
 	if not isinstance(public_key, rsa.RSAPublicKey):
 		print("Error loading public key!")
-		return 0
+		return False
 
 	try:
 		public_key.verify(
@@ -80,9 +80,9 @@ def check_digest(file: dict, log: dict) -> bool:
 		)
 	except InvalidSignature:
 		print("Digest is not valid! Integrity error!")
-		return 0
+		return False
 
-	return 1
+	return True
 
 
 

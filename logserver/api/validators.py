@@ -13,9 +13,6 @@ from logserver import utils
 def is_valid_upload_file_request(request, data: dict, users: list):
     user = request.user
 
-    if user.username != data['contributors'][0]['username']:
-        raise ValidationError({'contributors': [f"User '{user.username}' missing."]})
-
     for contributor in data['contributors']:
         try:
             u = User.objects.get(username=contributor['username'])
@@ -26,6 +23,9 @@ def is_valid_upload_file_request(request, data: dict, users: list):
             raise ValidationError({'contributors': [f"User '{contributor['username']}' repeated."]})
 
         users.append(u)
+
+    if user not in users:
+        raise ValidationError({'contributors': [f"User '{user.username}' missing."]})
 
     is_valid_signature(request.FILES['file'].read(), data, user, 1)
 
@@ -41,9 +41,6 @@ def is_valid_update_file_request(request, data: dict, file_id: int, users: list)
         error.status_code = error_code
         raise error
 
-    if user.username != data['contributors'][0]['username']:
-        raise ValidationError({'contributors': [f"User '{user.username}' missing."]})
-
     for contributor in data['contributors']:
         try:
             u = User.objects.get(username=contributor['username'])
@@ -58,6 +55,9 @@ def is_valid_update_file_request(request, data: dict, file_id: int, users: list)
 
         users.append(u)
         contributors.remove(u.id)
+
+    if user not in users:
+        raise ValidationError({'contributors': [f"User '{user.username}' missing."]})
 
     if contributors:
         raise ValidationError({'contributors': [f"Missing some contributors."]})
