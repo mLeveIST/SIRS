@@ -35,3 +35,7 @@ def validate_response(response, raise_exception=True) -> bool:
 
 def json_payload(data: dict) -> dict:
     return {'json': json.dumps(data)}
+
+
+def bold(text: str) -> str:
+    return "\033[1m" + text + "\033[0m"

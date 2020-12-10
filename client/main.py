@@ -23,12 +23,13 @@ def action_login():
     global token, key_pair, username
     key_pair = load_keys()
 
+    print(utils.bold("Login\n"))
     username = input("Username: ")
     pw = getpass("Password: ")
     utils.clear_screen()
 
     token = api.login(username, pw)["token"]
-    return mainMenu.select_action("Main Menu")
+    return mainMenu.select_action()
 
 
 def action_register(key_method):
@@ -46,7 +47,7 @@ def action_register(key_method):
     elif key_method == 'load':
         key_pair = load_keys()
     else:
-        raise SystemError("Something went wrong when choosing the key method")
+        raise RuntimeError("Something went wrong when choosing the key method")
 
     username = input("Username: ")
     password = getpass("Password: ")
@@ -55,12 +56,12 @@ def action_register(key_method):
     utils.clear_screen()
 
     token = api.register(username, password, key_pair['public'])['token']
-    return mainMenu.select_action("Main Menu")
+    return mainMenu.select_action()
 
 
 def action_upload_file():
     utils.clear_screen()
-    print('Upload File -> Select File')
+    print(utils.bold('Upload File -> Select File\n'))
     file_path = input("File path: ")
     utils.clear_screen()
 
@@ -80,7 +81,7 @@ def action_upload_file():
 
     api.upload_file(token, edata['efile'], edata['sign'], edata['ekeys'], contributors)
     print("Success: File Uploaded!")
-    return mainMenu.select_action("Main Menu")
+    return mainMenu.select_action()
 
 
 def action_download_file(selected_file=None):
@@ -106,7 +107,7 @@ def action_download_file(selected_file=None):
     utils.clear_screen()
 
     print("Success: File Downloaded!")
-    return mainMenu.select_action("Main Menu")
+    return mainMenu.select_action()
 
 
 def action_update_file():
@@ -121,6 +122,7 @@ def action_update_file():
         ).select_index()
 
         if option == 1:  # Choose to download first
+            utils.clear_screen()
             return action_download_file(selected_file=file_selected['id'])
 
     public_keys = []
@@ -140,7 +142,7 @@ def action_update_file():
                     edata['version'], edata['ekeys'], contributors)
 
     print("Success: File Updated!")
-    return mainMenu.select_action("Main Menu")
+    return mainMenu.select_action()
 
 
 def action_list_files():
@@ -152,7 +154,7 @@ def action_list_files():
 
     input("\nPress any key to go back to the menu...")
     utils.clear_screen()
-    return mainMenu.select_action("Main Menu")
+    return mainMenu.select_action()
 
 
 def action_exit():
@@ -166,8 +168,13 @@ def action_exit():
 
 def select_file():
     file_list = api.list_files(token)
-    menu = SelectMenu([file_details(file) for file in file_list])
-    return file_list[menu.select_index()]
+
+    menu = SelectMenu([file_details(file) for file in file_list] + ['0. Back'])
+    selected = menu.select_index(message='Select your file', clear_before=True)
+    if selected == len(file_list):
+        return mainMenu.select_action(clear_before=True)
+
+    return file_list[selected]
 
 
 def file_details(file: dict) -> str:
@@ -175,6 +182,7 @@ def file_details(file: dict) -> str:
 
 
 def load_keys():
+    utils.clear_screen()
     priv_path = input(f"Private key path (empty for {DEFAULT_PRIV_PATH}): ")
     if priv_path == '':
         priv_path = DEFAULT_PRIV_PATH
@@ -190,14 +198,15 @@ def load_keys():
 registerMenu = SelectMenu({
     '1. Generate a new RSA key pair': lambda: action_register('generate'),
     '2. Select an already existing RSA key pair': lambda: action_register('load'),
-    '0. Back': lambda: startMenu.select_action()
-})
+    '0. Back': lambda: startMenu.select_action(clear_before=True)
+}, message="Select your key...")
+
 
 startMenu = SelectMenu({
-    '1. Register': lambda: registerMenu.select_action("RSA Encryption Key"),
+    '1. Register': lambda: registerMenu.select_action(clear_before=True),
     '2. Login': action_login,
     '0. Exit': action_exit
-})
+}, message="SIRS T01 : Ransomware Protection Project")
 
 mainMenu = SelectMenu({
     '1. Upload file': action_upload_file,
@@ -205,7 +214,7 @@ mainMenu = SelectMenu({
     '3. Update file': action_update_file,
     '4. List files': action_list_files,
     '0. Exit': action_exit
-})
+}, message="Main Menu")
 
 utils.clear_screen()
 
@@ -218,7 +227,7 @@ def dev():
         priv_key = serialization.load_pem_private_key(priv_file.read(), password=None)
         key_pair = {'private': priv_key, 'public': priv_key.public_key()}
 
-    mainMenu.select_action("Main Menu")
+    mainMenu.select_action()
 
 
 startMenu.select_action() if len(argv) == 1 else dev()

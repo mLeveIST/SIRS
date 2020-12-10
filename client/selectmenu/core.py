@@ -17,6 +17,8 @@ from prompt_toolkit.layout.containers import (
 from selectmenu.keybinding import set_key_binding
 from selectmenu.control import SelectControl
 
+import os
+
 
 class SelectMenu(object):
 
@@ -47,7 +49,15 @@ class SelectMenu(object):
         self.prompt_msg = message
         self.controller = SelectControl(self.choices)
 
-    def select_index(self, message=None):
+    def select_index(self, message=None, clear_before=False):
+        if clear_before:
+            # for windows
+            if os.name == 'nt':
+                _ = os.system('cls')
+            # for mac and linux(here, os.name is 'posix')
+            else:
+                _ = os.system('clear')
+
         if message != None:
             self.prompt_msg = message
 
@@ -74,9 +84,11 @@ class SelectMenu(object):
             eventloop.close()
             return self.controller.selected_option_index
 
-    def select(self, message=None): return self.choices[self.select_index(message)]
+    def select(self, message=None, clear_before=False):
+        return self.choices[self.select_index(message, clear_before)]
 
-    def select_action(self, message=None): return self.actions[self.select_index(message)]()
+    def select_action(self, message=None, clear_before=False):
+        return self.actions[self.select_index(message, clear_before)]()
 
     def _get_layout(self):
 
