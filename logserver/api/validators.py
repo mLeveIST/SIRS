@@ -10,6 +10,19 @@ from api.models import User, Log
 from logserver import utils
 
 
+def validate_response(response, raise_exception=True):
+    if not (200 <= response.status_code < 300):
+        if raise_exception:
+            try:
+                content = response.json()
+            except:
+                content = response.content
+            raise ConnectionError("Error when making a {} request to {}. Returned {} {} with: {}".format(
+                response.request.method, response.request.url, response.status_code, response.reason, content))
+        return False
+    return True
+
+
 def is_valid_upload_file_request(request, data: dict, users: list):
     user = request.user
 
@@ -51,7 +64,8 @@ def is_valid_update_file_request(request, data: dict, file_id: int, users: list)
             raise ValidationError({'contributors': [f"User '{contributor['username']}' repeated."]})
 
         if u.id not in contributors:
-            raise ValidationError({'contributors': [f"User '{contributor['username']}' is not a contributor for the file."]})
+            raise ValidationError(
+                {'contributors': [f"User '{contributor['username']}' is not a contributor for the file."]})
 
         users.append(u)
         contributors.remove(u.id)
@@ -72,9 +86,9 @@ def is_valid_update_file_request(request, data: dict, file_id: int, users: list)
 
 def is_valid_access(user_id: int, file_id: int, msg: dict, contributors=None) -> int:
     if not contributors:
-        contributors = list(Log.objects \
-            .filter(file_id=file_id, version=0) \
-            .values_list('user_id', flat=True))
+        contributors = list(Log.objects
+                            .filter(file_id=file_id, version=0)
+                            .values_list('user_id', flat=True))
 
         if not contributors:
             msg['file_id'] = [f"File with id '{file_id}' does not exist."]
@@ -113,4 +127,3 @@ def is_valid_encoding(text: str, tag: str) -> bytes:
         return utils.string_to_bytes(text)
     except Exception:
         raise ValidationError({f'{tag}': [f"Must be a base64 encoded string."]})
-
