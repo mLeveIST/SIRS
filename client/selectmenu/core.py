@@ -20,11 +20,11 @@ from selectmenu.control import SelectControl
 
 class SelectMenu(object):
 
-    def __init__(self, choices=[], actions=[]):
+    def __init__(self, choices=[], actions=[], message=None):
         if len(choices) > 0:
-            self.add_choices(choices, actions)
+            self.add_choices(choices, actions, message)
 
-    def add_choices(self, choices, actions=[]):
+    def add_choices(self, choices, actions=[], message=None):
         if not isinstance(choices, (list, dict)):
             raise ValueError("The choices is not list nor a dict.")
 
@@ -44,10 +44,12 @@ class SelectMenu(object):
             self.choices = choices
             self.actions = actions
 
+        self.prompt_msg = message
         self.controller = SelectControl(self.choices)
 
     def select_index(self, message=None):
-        self.prompt_msg = message
+        if message != None:
+            self.prompt_msg = message
 
         layout = self._get_layout()
         style = self._get_style()

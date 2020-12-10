@@ -1,5 +1,3 @@
-from cryptography.exceptions import InvalidTag
-
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from cryptography.hazmat.primitives.ciphers import Cipher, modes
@@ -53,7 +51,7 @@ def encrypt_file(data: bytes, version: int, private_key: RSAPrivateKey, public_k
     hashfunc.update(edata)
     for ekey in ekeys:
         hashfunc.update(ekey)
-    hashfunc.update(str(version).encode())
+    hashfunc.update(version.to_bytes((version.bit_length() + 7) // 8, 'big'))
     digest = hashfunc.finalize()
 
     # Sign digest
@@ -84,9 +82,6 @@ def decrypt_file(edata: bytes, ekey: bytes, private_key: RSAPrivateKey):
     cipher = AESGCM(aes_key)
 
     # Decrypt file data
-    try:
-        data = cipher.decrypt(nonce, edata, None)
-    except InvalidTag:
-        raise Exception("Integrity attack!")  # If edata, nonce or aes key were changed
+    data = cipher.decrypt(nonce, edata, None)
 
     return data

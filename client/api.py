@@ -1,8 +1,7 @@
 import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from requests.api import head
-from utils import validate_response, bytes_to_string, string_to_bytes
+from utils import validate_response, bytes_to_string, string_to_bytes, json_payload
 
 SERVER_IP = "localhost:8000"
 session_token = ""
@@ -26,13 +25,11 @@ def register(username: str, password: str, pubkey: RSAPublicKey) -> dict:
 
 
 def login(username: str, password: str) -> dict:
-    login_data = {
-        "username": username,
-        "password": password
-    }
+    login_data = {"username": username, "password": password}
 
     response = requests.post(api_url("users/login/"), data=login_data)
     validate_response(response, raise_exception=True)
+
     return response.json()
 
 
@@ -43,43 +40,66 @@ def list_files(token: str) -> dict:
     return response.json()
 
 
-def upload_file(token: str, efile: bytes, sign: bytes, ekeys: list[bytes], contributors: list[str]) -> dict:
+def upload_file(token: str, efile: bytes, sign: bytes, ekeys: 'list[bytes]', contributors: 'list[str]') -> dict:
     headers = {'Authorization': f'Token {token}'}
     files_data = {'file': efile}
+    contrib_data = [{'username': contributors[i], 'key': bytes_to_string(ekeys[i])} for i in range(len(contributors))]
+    data = {'contributors': contrib_data, 'signature': bytes_to_string(sign)}
 
-    keys_data = [{'username': contributors[i], 'key': bytes_to_string(ekeys[i])} for i in range(len(contributors))]
-    data = {'keys': keys_data, 'sign': bytes_to_string(sign)}
-
-    response = requests.post(api_url("files/"), headers=headers, files=files_data, data=data)
+    response = requests.post(api_url("files/"), headers=headers, files=files_data, data=json_payload(data))
     validate_response(response, raise_exception=True)
+
     return response.json()
 
 
-def update_file(token: str, file_id: int, efile: bytes, ekey: bytes, version: int, sign: bytes) -> dict:
+def update_file(token: str, file_id: int, efile: bytes, sign: bytes, version: int, ekeys: 'list[bytes]', contributors: 'list[str]') -> dict:
     headers = {'Authorization': f'Token {token}'}
     files_data = {'file': efile}
-    data = {'key': bytes_to_string(ekey), 'version': version, 'sign': bytes_to_string(sign)}
+    contrib_data = [{'username': contributors[i], 'key': bytes_to_string(ekeys[i])} for i in range(len(contributors))]
+    data = {'contributors': contrib_data, 'version': version, 'signature': bytes_to_string(sign)}
 
-    response = requests.put(api_url(f"files/{file_id}/"), headers=headers, files=files_data, data=data)
+    response = requests.put(api_url(f"files/{file_id}/"), headers=headers, files=files_data, data=json_payload(data))
     validate_response(response, raise_exception=True)
-    return response.json()
+
+    return {}
 
 
 def download_file(token: str, file_id: int) -> dict:
     headers = {'Authorization': f'Token {token}'}
+
     response = requests.get(api_url(f"files/{file_id}/"), headers=headers)
     validate_response(response, raise_exception=True)
+
     return {'file': response.content, 'key': string_to_bytes(response.headers['key'])}
 
 
-def user_pubkey(username: str) -> dict:
-    response = requests.get(api_url(f'users/{username}/pubkey/'))
+def user_pubkey(token: str, username: str) -> dict:
+    headers = {'Authorization': f'Token {token}'}
+
+    response = requests.get(api_url(f'users/{username}/'), headers=headers)
     validate_response(response)
-    return response.json()
+
+    pubkey = serialization.load_pem_public_key(response.json()['pubkey'].encode())
+    return {'pubkey': pubkey}
 
 
 def file_contributors(token: str, file_id: int) -> dict:
     headers = {'Authorization': f'Token {token}'}
+
     response = requests.get(api_url(f'files/{file_id}/users/'), headers=headers)
     validate_response(response)
-    return response.json()
+
+    contributors = response.json()
+    for contributor in contributors:
+        contributor['pubkey'] = serialization.load_pem_public_key(contributor['pubkey'].encode())
+
+    return contributors
+
+
+def report_file(token: str, file_id: int) -> dict:
+    headers = {'Authorization': f'Token {token}'}
+
+    response = requests.get(api_url(f'files/{file_id}/report/'), headers=headers)
+    validate_response(response)  # raise_exception=False -> handle exception, what to do?
+
+    return {'status': response.status_code}

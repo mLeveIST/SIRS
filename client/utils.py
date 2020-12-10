@@ -1,4 +1,5 @@
 import os
+import json
 import base64
 
 
@@ -19,7 +20,7 @@ def clear_screen():
         _ = os.system('clear')
 
 
-def validate_response(response, raise_exception=True):
+def validate_response(response, raise_exception=True) -> bool:
     if not (200 <= response.status_code < 300):
         if raise_exception:
             try:
@@ -30,3 +31,7 @@ def validate_response(response, raise_exception=True):
                 response.request.method, response.request.url, response.status_code, response.reason, content))
         return False
     return True
+
+
+def json_payload(data: dict) -> dict:
+    return {'json': json.dumps(data)}

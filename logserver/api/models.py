@@ -31,6 +31,7 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
+
 class User(AbstractBaseUser):
     username = models.CharField(max_length=30, unique=True)
     pubkey = models.BinaryField(unique=True)
@@ -53,6 +54,7 @@ class User(AbstractBaseUser):
     def has_module_perms(self, app_label):
         return True
 
+
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
@@ -70,11 +72,3 @@ class Log(models.Model):
 class Backup(models.Model):
     timestamp = models.DateTimeField()
     successful = models.BooleanField()
-
-
-
-
-
-
-
-
