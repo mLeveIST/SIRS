@@ -5,6 +5,8 @@ from pathlib import Path
 from django.core import management
 
 from rest_framework import status
+from json import loads
+
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -15,22 +17,23 @@ from .serializers import DataSerializer
 from .validators import check_integrity
 
 
-FILESERVER_URL = "http://localhost:8001/api"
+# FILESERVER_URL = "https://log/api" # For Prod
+FILESERVER_URL = "http://localhost:8001/api" # For dev
 
 
 # ------------------------------------ #
 # Services to be called by Logs Server #
 # ------------------------------------ #
 
-@api_view(['GET'])
+@api_view(['POST'])
 def backup_data(request):
 
-	data = loads(request.data['json'])
+	logs_data = loads(request.data['json'])
 
-	response = requests.get(f"{FILESERVER_URL}/data/")
+	files_data = requests.get(f"{FILESERVER_URL}/data/")
 
-	if response.status_code != 200:
-		return Response(status=response.status_code)
+	if files_data.status_code != 200:
+		return Response(status=files_data.status_code)
 
 	if utils.empty_directory('sharedfiles'):
 		return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -38,7 +41,7 @@ def backup_data(request):
 	utils.backup_cmd('mediarestore')
 	utils.backup_cmd('dbrestore')
 
-	system_status = check_integrity(response.json(), data)
+	system_status = check_integrity(files_data.json(), logs_data)
 
 	if system_status:
 		utils.backup_cmd('mediabackup', '--output-path=backups/files_backup.tar')
@@ -56,8 +59,6 @@ def backup_data(request):
 
 @api_view(['GET'])
 def get_data(request):
-	
-	# These 4 lines could also be a 'cp'
 	utils.backup_cmd('mediarestore', '--input-path=backups/files_backup.tar')
 	utils.backup_cmd('dbrestore', '--input-path=backups/db_backup.dump')
 

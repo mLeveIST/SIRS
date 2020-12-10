@@ -54,6 +54,8 @@ def backup_data_to(urls, data):
 		response = requests.post(f'{url}/data/backup/', data=jdata)
 		responses.append(response)
 
+	return responses
+
 
 def recover_data_from(url, buserver_id):
 	return requests.get(f'{url}/data/recover/{buserver_id}/')

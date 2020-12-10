@@ -28,7 +28,7 @@ cat >> /etc/hosts <<EOL
 # vagrant environment nodes
 192.168.56.10   mgmt
 192.168.57.10   log
-192.168.57.13   file
-192.168.57.11   bs1
-192.168.57.12   bs2
+192.168.57.11   file
+192.168.58.11   bs1
+192.168.58.12   bs2
 EOL

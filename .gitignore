@@ -14,6 +14,8 @@ control/id_rsa
 control/id_rsa.pub
 control/rootCA.crt
 control/rootCA.key
+control/bs1.ovpn
+control/bs2.ovpn
 
 # client
 client/*.pem
@@ -28,3 +30,7 @@ fileserver/files/*
 backupserver/files/*
 fileserver/sharedfiles
 
+
+client/requirements.txt
+
+client/client.py

@@ -55,3 +55,8 @@ class DataSerializer(serializers.ModelSerializer):
         model = File
         fields = ['id', 'file', 'keys']
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['keys'] = sorted(data['keys'], key=lambda key: key['user_id'])
+        return data
+

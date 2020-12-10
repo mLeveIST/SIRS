@@ -17,7 +17,7 @@ sudo apt-get update && sudo apt-get upgrade -y
 # install key
 cat /vagrant/control/id_rsa.pub >> /home/vagrant/.ssh/authorized_keys
 cp /vagrant/control/root* /home/vagrant/
-sudo rm -Rf /var/repo/fileserver/sharedfiles
+
 
 # configure hosts file for the internal network defined by Vagrantfile
 cat >> /etc/hosts <<EOL
@@ -25,7 +25,30 @@ cat >> /etc/hosts <<EOL
 # vagrant environment nodes
 192.168.56.10   mgmt
 192.168.57.10   log
-192.168.57.13   file
-192.168.57.11   bs1
-192.168.57.12   bs2
+192.168.57.11   file
+192.168.58.11   bs1
+192.168.58.12   bs2
 EOL
+
+cp /vagrant/control/openvpn-install.sh /home/vagrant/
+sudo chmod +x openvpn-install.sh
+
+sudo ./openvpn-install.sh <<EOF
+2
+file
+1
+1194
+3
+bs1
+EOF
+
+sudo ./openvpn-install.sh <<EOF
+1
+bs2
+EOF
+
+cp /root/*.ovpn /vagrant/control/
+
+systemctl restart openvpn-server@server.service
+
+
