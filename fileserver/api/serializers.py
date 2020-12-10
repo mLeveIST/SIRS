@@ -1,35 +1,25 @@
 from rest_framework import serializers
-from .models import File, Key
-from fileserver import utils
 
-import base64
-from cryptography.hazmat.primitives import serialization
+from .models import File, Key
+
+from fileserver import utils
 
 
 class PGPKeyField(serializers.Field):
-    def to_representation(self, value):
-        return utils.bytes_to_string(value)
+    def to_representation(self, evalue):
+        return utils.bytes_to_string(evalue)
 
     def to_internal_value(self, data):
         return utils.string_to_bytes(data)
 
 
-class FileContentSerializer(serializers.ModelSerializer):
+class FileSerializer(serializers.ModelSerializer):
     class Meta:
         model = File
         fields = ['file']
 
 
-class KeySerializer(serializers.ModelSerializer):
-    key = PGPKeyField()
-
-    class Meta:
-        model = Key
-        fields = ['user_id', 'key', 'file']
-        extra_kwargs = {'user_id': {'write_only': True}, 'file': {'write_only': True}}
-
-
-class FileDetailSerializer(serializers.ModelSerializer):
+class FileInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = File
         fields = ['id', 'file']
@@ -42,9 +32,26 @@ class FileDetailSerializer(serializers.ModelSerializer):
         }
 
 
+class KeySerializer(serializers.ModelSerializer):
+    key = PGPKeyField()
+
+    class Meta:
+        model = Key
+        fields = ['file_id', 'user_id', 'key']
+
+
+class KeyValueSerializer(serializers.ModelSerializer):
+    key = PGPKeyField()
+
+    class Meta:
+        model = Key
+        fields = ['key']
+
+
 class DataSerializer(serializers.ModelSerializer):
     keys = KeySerializer(source='key_set', many=True)
 
     class Meta:
         model = File
-        fields = ['id', 'efile', 'keys']
+        fields = ['id', 'file', 'keys']
+

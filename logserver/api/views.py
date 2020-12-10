@@ -1,147 +1,236 @@
-import requests
-from logserver import utils
 from datetime import datetime
+from json import loads
 
-from django.db.models import Max
+from django.db import transaction
+from django.db.models import Max, Q, F
+from django.http import HttpResponse, FileResponse
+
 from rest_framework import status
-from django.shortcuts import render
-from rest_framework.response import Response
-from rest_framework.decorators import api_view
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.serializers import ValidationError
 
+from logserver.utils import requests_to_django
 from .models import User, Log
-from .serializers import RegisterSerializer, LogSerializer, PubkeySerializer
+from .requests import upload_file_to, update_file_to, list_files_from, download_file_from, get_file_data_from
+from .validators import is_valid_upload_file_request, is_valid_update_file_request, is_valid_access, is_valid_signature, validate_response
+from .serializers import RegisterSerializer, PubKeySerializer, LogSerializer
 
-# TEMP
-FILESERVER_URL = "http://localhost:8001/api/"
-# FILESERVER_URL = "http://file/api/"
-# Create your views here.
+
+FILESERVER_URL = "http://localhost:8001/api"
+BACKUPSERVER1_URL = "http://localhost:8002/api"
+BACKUPSERVER2_URL = "http://localhost:8003/api"
+
 
 # ---------------------------------------- #
 # Services to be called by Client Machines #
 # ---------------------------------------- #
 
+@api_view(['POST'])
+def register_user(request):
+    serial = RegisterSerializer(data=request.data)
+
+    serial.is_valid(raise_exception=True)
+    user = serial.save()
+
+    token = Token.objects.get(user=user)
+
+    return Response({'token': token.key}, status=status.HTTP_201_CREATED)
+
 
 @api_view(['GET'])
-def get_pubkey(request, username):
-    user = User.objects.get(username=username)
-    serial = PubkeySerializer(user)
+@permission_classes([IsAuthenticated])
+def get_file_contributors(request, file_id):
+    error_msg = {}
+    contributors = list(Log.objects
+                        .filter(file_id=file_id, version=0)
+                        .values_list('user_id', flat=True))
+
+    error_code = is_valid_access(request.user.id, file_id, error_msg, contributors)
+    if error_code:
+        return Response(error_msg, error_code)
+
+    users = User.objects.filter(pk__in=contributors)
+
+    serial = PubKeySerializer(users, many=True)
     return Response(serial.data, status=status.HTTP_200_OK)
 
 
-@api_view(['GET', 'PUT'])
-def file_details(request, file_id):
-    # Includes get a specific file and update a file that already exists
-    # Download or Update a specific file
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_pubkey(request, username):
+    try:
+        user = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return Response(
+            {'username': [f"User '{username}' does not exist."]},
+            status=status.HTTP_404_NOT_FOUND)
 
-    if request.method == 'GET':
-        return get_file(request, file_id)
+    serial = PubKeySerializer(user)
+    return Response(serial.data, status=status.HTTP_200_OK)
 
-    elif request.method == 'PUT':
-        return update_file(request, file_id)
+
+def upload_file(request):
+    data = loads(request.data['json'])
+    users = []
+
+    is_valid_upload_file_request(request, data, users)
+
+    signature = data.pop('signature')
+    response = upload_file_to(FILESERVER_URL, request, data, users)
+
+    if not validate_response(response, raise_exception=False):
+        return requests_to_django(response)
+
+    response_data = response.json()
+
+    with transaction.atomic():
+        timestamp = datetime.now()
+        for user in users:
+            log_serial = LogSerializer(data={
+                'user_id': user.id,
+                'file_id': response_data['file_id'],
+                'version': 0,
+                'timestamp': timestamp})
+
+            log_serial.is_valid(raise_exception=True)
+            log_serial.save()
+
+        log_serial = LogSerializer(data={
+            'user_id': request.user.id,
+            'file_id': response_data['file_id'],
+            'version': 1,
+            'timestamp': datetime.now(),
+            'signature': signature})
+
+        log_serial.is_valid(raise_exception=True)
+        log_serial.save()
+
+    return Response({'file_id': response_data['file_id']}, status=response.status_code)
+
+
+def update_file(request, file_id):
+    data = loads(request.data['json'])
+    users = []
+
+    is_valid_update_file_request(request, data, file_id, users)
+
+    version = data.pop('version')
+    signature = data.pop('signature')
+    response = update_file_to(FILESERVER_URL, file_id, request, data, users)
+
+    if not validate_response(response, raise_exception=False):
+        return requests_to_django(response)
+
+    log_serial = LogSerializer(data={
+        'user_id': request.user.id,
+        'file_id': file_id,
+        'version': version,
+        'timestamp': datetime.now(),
+        'signature': signature})
+
+    log_serial.is_valid(raise_exception=True)
+    log_serial.save()
+
+    return Response(status=response.status_code)
+
+
+def list_files(request):
+    response = list_files_from(FILESERVER_URL, request.user.id)
+
+    if not validate_response(response, raise_exception=False):
+        return requests_to_django(response)
+
+    files = response.json()
+
+    # Get latest log for each file
+    file_ids = [f['id'] for f in files]
+    q = Log.objects.filter(file_id__in=file_ids).values('file_id').annotate(max_version=Max('version')).order_by()
+    q_filter = Q()
+    for entry in q:
+        q_filter |= (Q(file_id=entry['file_id']) & Q(version=entry['max_version']))
+
+    latest_file_logs = Log.objects.filter(q_filter).annotate(contributor=F('user_id__username'))
+
+    for log in latest_file_logs:
+        for file in files:
+            if file['id'] == log.file_id:
+                file['version'] = log.version
+                file['contributor'] = log.contributor
+                break
+
+    return Response(files, status=status.HTTP_200_OK)
+
+
+def download_file(request, file_id):
+    user = request.user
+    error_msg = {}
+
+    error_code = is_valid_access(user.id, file_id, error_msg)
+    if error_code:
+        return Response(error_msg, error_code)
+
+    response = download_file_from(FILESERVER_URL, user.id, file_id)
+
+    if response.status_code != 200:
+        return Response(response.content, status=response.status_code)
+
+    response.headers['version'] = Log.objects \
+        .filter(file_id=file_id) \
+        .aggregate(version=Max('version'))['version']
+
+    httpResponse = HttpResponse(
+        content=response.content,
+        status=response.status_code
+    )
+
+    for header, value in response.headers.items():
+        httpResponse[header] = value
+
+    return httpResponse
 
 
 @api_view(['GET', 'POST'])
-def file_list(request):
+@permission_classes([IsAuthenticated])
+def files_detail(request):
     if request.method == 'GET':
         return list_files(request)
     elif request.method == 'POST':
         return upload_file(request)
 
 
-def get_file(request, file_id):
-    user = utils.authenticated_user(request)
-    url = FILESERVER_URL + "files/{}/users/{}/".format(file_id, user.id)
-
-    r = requests.get(url)
-    if r.status_code < 200 or r.status_code >= 300:
-        return Response(r.content, status=r.status_code)
-
-    return utils.requests_to_django(r)
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def file_detail(request, file_id):
+    if request.method == 'GET':
+        return download_file(request, file_id)
+    elif request.method == 'PUT':
+        return update_file(request, file_id)
 
 
-def update_file(request, file_id):
-    user = utils.authenticated_user(request)
-    url = FILESERVER_URL + "files/{}/users/{}/".format(file_id, user.id)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def report_file(request, file_id):
+    file_response = download_file(request, file_id)
 
-    r = requests.put(url, files=request.FILES, data={'key': request.data["key"]})
-    if r.status_code < 200 or r.status_code >= 300:
-        return Response(r.content, status=r.status_code)
+    if file_response.status_code != 200:
+        return Response(file_response.content, status=file_response.status_code)
 
-    log_data = {
-        'file_id': file_id,
-        'user': user.id,
-        'ts': datetime.now(),
-        'sign': request.data['sign'],
-        'version': request.data['version']
-    }
-    log_serial = LogSerializer(data=log_data)
-    if not log_serial.is_valid():
-        return Response(log_serial.errors, status=status.HTTP_400_BAD_REQUEST)
-    log = log_serial.save()
+    data_response = get_file_data_from(FILESERVER_URL, file_id)
 
-    return utils.requests_to_django(r)
+    if data_response.status_code != 200:
+        return Response(data_response.content, status=data_response.status_code)
 
+    log = Log.objects.filter(file_id=file_id).latest('timestamp')
+    data = {'contributors': data_response.json()['keys'], 'signature': log.signature}
 
-def list_files(request):
-    user = utils.authenticated_user(request)
-    url = FILESERVER_URL + "files/users/{}/".format(user.id)
+    try:
+        is_valid_signature(file_response.content, data, log.user_id, log.version)
+    except ValidationError:
+        #response = recover_data_from(FILESERVER_URL, 1)
+        return Response(status=status.HTTP_202_ACCEPTED)
 
-    file_list = requests.get(url).json()
-    q = Log.objects.filter(file_id__in=[f['id'] for f in file_list]).values(
-        'file_id').annotate(version=Max('version'))
-
-    for file in file_list:
-        for log in q:
-            if file['id'] == log['file_id']:
-                file['version'] = log['version']
-
-    return Response(file_list, status=status.HTTP_200_OK)
-
-
-def upload_file(request):
-    user = utils.authenticated_user(request)
-    url = FILESERVER_URL + "files/users/{}/".format(user.id)
-
-    r = requests.post(url, files=request.FILES, data={'key': request.data["key"]})
-    if r.status_code < 200 or r.status_code >= 300:
-        return Response(r.content, status=r.status_code)
-
-    log_data = {
-        'file_id': r.json()['file_id'],
-        'user': user.id,
-        'ts': datetime.now(),
-        'sign': request.data['sign'],
-        'version': 1
-    }
-    log_serial = LogSerializer(data=log_data)
-    if not log_serial.is_valid():
-        return Response(log_serial.errors, status=status.HTTP_400_BAD_REQUEST)
-    log = log_serial.save()
-
-    return Response({'file_id': log.file_id}, status=status.HTTP_201_CREATED)
-
-
-# Auth views
-
-
-@api_view(['POST'])
-def register(request):
-    serial = RegisterSerializer(data=request.data)
-    if not serial.is_valid():
-        return Response(serial.errors, status=status.HTTP_400_BAD_REQUEST)
-    user = serial.save()
-    token = Token.objects.get(user=user)
-
-    return Response({'token': token.key}, status=status.HTTP_201_CREATED)
-
-
-class LoginClass(ObtainAuthToken):
-    def post(self, request):
-        serializer = self.serializer_class(
-            data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data.get('user')
-        token, _ = Token.objects.get_or_create(user=user)
-        return Response({'token': token.key}, status=status.HTTP_200_OK)
+    return Response({'file_id': [f"No integrity problems detected."]}, status=status.HTTP_400_BAD_REQUEST)
