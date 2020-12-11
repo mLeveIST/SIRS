@@ -12,7 +12,7 @@ Vagrantfile(libvirt)
 *.log
 control/id_rsa
 control/id_rsa.pub
-control/rootCA.crt
+control/*.crt
 control/rootCA.key
 control/bs1.ovpn
 control/bs2.ovpn
@@ -29,8 +29,6 @@ migrations/
 fileserver/files/*
 backupserver/files/*
 fileserver/sharedfiles
-
-
-client/requirements.txt
-
+client/*.txt
+client/*.pem
 client/client.py

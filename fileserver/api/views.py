@@ -112,8 +112,8 @@ def get_file_data(request, file_id):
 
 @api_view(['GET'])
 def recover_data(request, bserver_id):
-    # response = requests.get(f"https://bs{bserver_id}/api/data/") # For prod
-    response = requests.get(f"http://localhost:800{bserver_id}/api/data/") # For dev
+    response = requests.get(f"https://bs{bserver_id}/api/data/") # For prod
+    #response = requests.get(f"http://localhost:800{bserver_id}/api/data/") # For dev
 
     if response.status_code != 200:
         return Response(status=response.status_code)

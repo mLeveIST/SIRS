@@ -12,6 +12,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
+from requests.utils import DEFAULT_CA_BUNDLE_PATH
 
 from logserver.utils import requests_to_django
 
@@ -21,13 +22,13 @@ from .serializers import RegisterSerializer, UserSerializer, LogSerializer, Data
 from .validators import is_valid_upload_file_request, is_valid_update_file_request, is_valid_access, is_valid_signature, validate_response
 
 
-# FILESERVER_URL = "https://file/api" # For prod
-# BACKUPSERVER1_URL = "https://bs1/api" # For prod
-# BACKUPSERVER2_URL = "https://bs2/api" # For prod
+FILESERVER_URL = "https://file/api" # For prod
+BACKUPSERVER1_URL = "https://bs1/api" # For prod
+BACKUPSERVER2_URL = "https://bs2/api" # For prod
 
-FILESERVER_URL = "http://localhost:8001/api" # For dev
-BACKUPSERVER1_URL = "http://localhost:8002/api" # For dev
-BACKUPSERVER2_URL = "http://localhost:8003/api" # For dev
+#FILESERVER_URL = "http://localhost:8001/api" # For dev
+#BACKUPSERVER1_URL = "http://localhost:8002/api" # For dev
+#BACKUPSERVER2_URL = "http://localhost:8003/api" # For dev
 
 
 # ---------------------------------------- #
@@ -36,6 +37,8 @@ BACKUPSERVER2_URL = "http://localhost:8003/api" # For dev
 
 @api_view(['POST'])
 def register_user(request):
+    print(request)
+    print(DEFAULT_CA_BUNDLE_PATH)
     serial = RegisterSerializer(data=request.data)
 
     serial.is_valid(raise_exception=True)
@@ -237,7 +240,7 @@ def report_file(request, file_id):
     try:
         is_valid_signature(file_response.content, data, log.user_id, log.version)
     except ValidationError:
-        recovery = recover_data_from(FILESERVER_URL, 2)
+        recovery = recover_data_from(FILESERVER_URL, 1)
 
         if recovery.status_code != 200:
             return Response(recovery.content, status=recovery.status_code)
@@ -289,7 +292,7 @@ def backup_data(request):
 
         return Response(status=status.HTTP_202_ACCEPTED)
     elif sum(system_status) == 0: # file Server corruption
-        recovery = recover_data_from(FILESERVER_URL, 2)
+        recovery = recover_data_from(FILESERVER_URL, 1)
 
         if recovery.status_code != 200:
             return Response(recovery.content, status=recovery.status_code)

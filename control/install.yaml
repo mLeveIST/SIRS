@@ -6,7 +6,7 @@
   tasks:
     - name: install all packages
       apt:
-        pkg: [python3, python3-pip, apache2, libapache2-mod-wsgi-py3]
+        pkg: [python3, python3.8, python3-pip, apache2, libapache2-mod-wsgi-py3]
         state: latest
         update_cache: yes
 
@@ -17,6 +17,26 @@
     - name: mod apache command
       shell:
         cmd: a2enmod ssl
+
+    - name: Upgrade all apt packages
+      apt: upgrade=dist force_apt_get=yes
+
+
+- hosts: clients
+  become: yes
+  become_method: sudo
+  gather_facts: no
+
+  tasks:
+    - name: install all packages
+      apt:
+        pkg: [python3, python3-pip]
+        state: latest
+        update_cache: yes
+
+    - name: pip install requirements
+      shell:
+        cmd: pip3 install -r /home/vagrant/client/requirements.txt --no-cache-dir
 
     - name: Upgrade all apt packages
       apt: upgrade=dist force_apt_get=yes

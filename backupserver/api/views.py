@@ -17,8 +17,8 @@ from .serializers import DataSerializer
 from .validators import check_integrity
 
 
-# FILESERVER_URL = "https://log/api" # For Prod
-FILESERVER_URL = "http://localhost:8001/api" # For dev
+FILESERVER_URL = "https://log/api" # For Prod
+#FILESERVER_URL = "http://localhost:8001/api" # For dev
 
 
 # ------------------------------------ #
@@ -30,7 +30,7 @@ def backup_data(request):
 
 	logs_data = loads(request.data['json'])
 
-	files_data = requests.get(f"{FILESERVER_URL}/data/")
+	files_data = requests.get(f"{FILESERVER_URL}/data/", verify='/etc/ssl/certs/rootCA.crt')
 
 	if files_data.status_code != 200:
 		return Response(status=files_data.status_code)

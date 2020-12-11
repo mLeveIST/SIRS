@@ -1,18 +1,46 @@
-- hosts: targets
+- hosts: ms
   become: yes
   become_method: sudo
   gather_facts: yes
 
   tasks:
 
+    - name: disable apache default conf
+      shell: /usr/sbin/a2dissite 000-default.conf
+      notify: apache reload
+
+    - name: apache config template log or file
+      template:
+        src: templates/django.conf.j2
+        dest: /etc/apache2/sites-available/django.conf
+        owner: www-data
+        group: www-data
+        mode: "664"
+
+    - name: enable apache config
+      shell: /usr/sbin/a2ensite django.conf
+      notify: apache reload
+
+  handlers:
+    - name: apache reload
+      service:
+        name: apache2
+        state: restarted
+
+- hosts: bs
+  become: yes
+  become_method: sudo
+  gather_facts: yes
+
+  tasks:
 
     - name: disable apache default conf
       shell: /usr/sbin/a2dissite 000-default.conf
       notify: apache reload
 
-    - name: apache config template
+    - name: apache config template log or file
       template:
-        src: templates/django.conf.j2
+        src: templates/django_backup.conf.j2
         dest: /etc/apache2/sites-available/django.conf
         owner: www-data
         group: www-data

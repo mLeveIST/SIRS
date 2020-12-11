@@ -1,0 +1,25 @@
+- hosts: clients
+  become: yes
+  become_method: sudo
+  gather_facts: yes
+
+  tasks:
+
+  - name:
+    shell:
+      cmd: cp /vagrant/control/rootCA.crt /etc/ssl/certs
+
+  - name: append rootCA certifi clients
+    shell:
+      cmd: cat /etc/ssl/certs/rootCA.crt >> /home/vagrant/.local/lib/python3.6/site-packages/certifi/cacert.pem
+
+- hosts: targets
+  become: yes
+  become_method: sudo
+  gather_facts: yes
+
+  tasks:
+
+  - name: append rootCA certifi servers
+    shell:
+      cmd: cat /etc/ssl/certs/rootCA.crt >> /usr/local/lib/python3.6/dist-packages/certifi/cacert.pem
