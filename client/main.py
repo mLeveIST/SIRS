@@ -2,11 +2,12 @@
 
 from sys import argv
 from getpass import getpass
+from typing import Callable
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives import serialization
 
 import api
-import utils
+from utils import clear_screen, clear_before, bold, ServerException, is_client_error
 from selectmenu import SelectMenu
 from encryption import generate_RSA_keys, encrypt_file, decrypt_file
 
@@ -21,14 +22,29 @@ username = str()
 
 def action_login():
     global token, key_pair, username
-    key_pair = load_keys()
 
-    print(utils.bold("Login\n"))
+    try:
+        key_pair = load_keys()
+    except (FileNotFoundError, ValueError) as e:
+        if isinstance(e, FileNotFoundError):
+            return errorMenu(f"{e.strerror} : {e.filename}.", action_login, startMenu.select_action).select_action()
+        elif isinstance(e, ValueError):
+            return errorMenu(f"File not a valid RSA private key.", action_login, startMenu.select_action).select_action()
+
+    clear_screen()
+    print(bold("Login\n"))
     username = input("Username: ")
     pw = getpass("Password: ")
-    utils.clear_screen()
 
-    token = api.login(username, pw)["token"]
+    try:
+        token = api.login(username, pw)["token"]
+    except ServerException as e:
+        if is_client_error(e.status):
+            return errorMenu(e.error_message, action_login, startMenu.select_action).select_action()
+        else:
+            raise e
+
+    clear_screen()
     return mainMenu.select_action()
 
 
@@ -45,25 +61,42 @@ def action_register(key_method):
                 )
             )
     elif key_method == 'load':
-        key_pair = load_keys()
-    else:
-        raise RuntimeError("Something went wrong when choosing the key method")
+        try:
+            key_pair = load_keys()
+        except (FileNotFoundError, ValueError) as e:
+            if isinstance(e, FileNotFoundError):
+                return errorMenu(f"{e.strerror} : {e.filename}", action_login, startMenu.select_action).select_action()
+            elif isinstance(e, ValueError):
+                return errorMenu("File not a valid RSA private key.", action_login, startMenu.select_action).select_action()
 
+    print(bold("Register\n"))
     username = input("Username: ")
     password = getpass("Password: ")
     if password != getpass("Confirm Password: "):
-        raise ValueError("Passwords don't have the same value")
-    utils.clear_screen()
+        return errorMenu("Passwords must match.", action_register, startMenu.select_action).select_action()
 
-    token = api.register(username, password, key_pair['public'])['token']
+    try:
+        token = api.register(username, password, key_pair['public'])['token']
+    except ServerException as e:
+        if is_client_error(e.status):
+            return errorMenu(e.error_message, action_register, startMenu.select_action).select_action()
+        else:
+            raise e
+
+    clear_screen()
     return mainMenu.select_action()
 
 
 def action_upload_file():
-    utils.clear_screen()
-    print(utils.bold('Upload File -> Select File\n'))
-    file_path = input("File path: ")
-    utils.clear_screen()
+    clear_screen()
+    print(bold('Upload File -> Select File\n'))
+    try:
+        with open(input("File path: "), "rb") as file:
+            file_bytes = file.read()
+    except FileNotFoundError as e:
+        return errorMenu(f"Error: {e.strerror} : {e.filename}", action_upload_file, mainMenu.select_action).select_action()
+
+    clear_screen()
 
     pubkeys = [key_pair['public']]
     contributors = [username]
@@ -72,14 +105,30 @@ def action_upload_file():
             contributor = input('Username (empty to done): ')
             if contributor == '':
                 break
-            pubkeys.append(api.user_pubkey(token, contributor)['pubkey'])
+
+            try:
+                pubkeys.append(api.user_pubkey(token, contributor)['pubkey'])
+            except ServerException as e:
+                if is_client_error(e.status):
+                    print(f"Error: {e.error_message}")
+                    continue
+                else:
+                    raise e
+
             contributors.append(contributor)
-    utils.clear_screen()
 
-    with open(file_path, "rb") as file:
-        edata = encrypt_file(file.read(), 1, key_pair['private'], pubkeys)
+    clear_screen()
 
-    api.upload_file(token, edata['efile'], edata['sign'], edata['ekeys'], contributors)
+    edata = encrypt_file(file_bytes, 1, key_pair['private'], pubkeys)
+
+    try:
+        api.upload_file(token, edata['efile'], edata['sign'], edata['ekeys'], contributors)
+    except ServerException as e:
+        if is_client_error(e.status):
+            return errorMenu(e.error_message, action_upload_file, mainMenu.select_action).select_action()
+        else:
+            raise e
+
     print("Success: File Uploaded!")
     return mainMenu.select_action()
 
@@ -87,24 +136,28 @@ def action_upload_file():
 def action_download_file(selected_file=None):
     file_id = select_file()['id'] if selected_file == None else selected_file
 
-    response = api.download_file(token, file_id)
+    try:
+        response = api.download_file(token, file_id)
+    except ServerException as e:
+        if is_client_error(e.status):
+            return errorMenu(e.error_message, action_download_file, mainMenu.select_action).select_action()
+        else:
+            raise e
 
     try:
         file_bytes = decrypt_file(response['file'], response['key'], key_pair['private'])
     except InvalidTag:  # If edata, nonce or aes key were changed
-        response = api.report_file(token, file_id)
-        if response['status'] == 202:
-            SelectMenu(
-                message='The server rollbacked and the file you select may or may not have changed.\n' +
-                        'Please select your file again.',
-                choices=['Ok']
-            ).select()
-            return action_download_file()
-        raise RuntimeError(f"Error: Expecting 202 and got {response['status']}. Please report this.")
+        api.report_file(token, file_id)
+        SelectMenu(
+            message='The server rollbacked and the file you select may or may not have changed.\n' +
+                    'Please select your file again.',
+            choices=['Ok']
+        ).select()
+        return action_download_file()
 
     with open(input("Save as: "), "wb") as file:
         file.write(file_bytes)
-    utils.clear_screen()
+    clear_screen()
 
     print("Success: File Downloaded!")
     return mainMenu.select_action()
@@ -122,57 +175,95 @@ def action_update_file():
         ).select_index()
 
         if option == 1:  # Choose to download first
-            utils.clear_screen()
+            clear_screen()
             return action_download_file(selected_file=file_selected['id'])
+
+    try:
+        response = api.file_contributors(token, file_selected['id'])
+    except ServerException as e:
+        if is_client_error(e.status):
+            return errorMenu(e.error_message, action_update_file, mainMenu.select_action).select_action()
+        else:
+            raise e
 
     public_keys = []
     contributors = []
-    for c in api.file_contributors(token, file_selected['id']):
+    for c in response:
         public_keys.append(c['pubkey'])
         contributors.append(c['username'])
 
-    utils.clear_screen()
-    file_path = input("File path: ")
-    utils.clear_screen()
+    clear_screen()
+    while True:
+        file_path = input("File path: ")
+        try:
+            with open(file_path, "rb") as file:
+                edata = encrypt_file(file.read(), file_selected['version']+1, key_pair['private'], public_keys)
+            break
+        except FileNotFoundError as e:
+            eMenu = errorMenu(f"Error: {e.strerror} : {e.filename}", clear_screen, mainMenu.select_action)
+            if eMenu.select_index == 1:
+                return eMenu.actions[1]()
+            eMenu.actions[0]()
+            print('Error: File not found\n')
 
-    with open(file_path, "rb") as file:
-        edata = encrypt_file(file.read(), file_selected['version']+1, key_pair['private'], public_keys)
+    try:
+        api.update_file(token, file_selected['id'], edata['efile'], edata['sign'],
+                        edata['version'], edata['ekeys'], contributors)
+    except ServerException as e:
+        if is_client_error(e.status):
+            return errorMenu(e.error_message, action_update_file, mainMenu.select_action).select_action()
+        else:
+            raise e
 
-    api.update_file(token, file_selected['id'], edata['efile'], edata['sign'],
-                    edata['version'], edata['ekeys'], contributors)
-
+    clear_screen()
     print("Success: File Updated!")
     return mainMenu.select_action()
 
 
 def action_list_files():
-    utils.clear_screen()
-    file_list = api.list_files(token)
-    print("Files List\n")
+    clear_screen()
+
+    try:
+        file_list = api.list_files(token)
+    except ServerException as e:
+        if is_client_error(e.status):
+            return errorMenu(e.error_message, action_list_files, mainMenu.select_action).select_action()
+        else:
+            raise e
+
+    print(bold("Files List\n"))
     for file in file_list:
         print(file_details(file))
 
-    input("\nPress any key to go back to the menu...")
-    utils.clear_screen()
+    input(bold("\nPress any key to go back to the menu..."))
+    clear_screen()
     return mainMenu.select_action()
 
 
 def action_exit():
-    utils.clear_screen()
+    clear_screen()
     print("Thank you for using the best project of SIRS!")
     print("Have a great day :)")
     print("\n")
-    print("Exited successfully!")
+    print(bold("Exited successfully!"))
     exit(0)
 
 
 def select_file():
-    file_list = api.list_files(token)
+    try:
+        file_list = api.list_files(token)
+    except ServerException as e:
+        if is_client_error(e.status):
+            return errorMenu(e.error_message, select_file, mainMenu.select_action).select_action()
+        else:
+            raise e
 
     menu = SelectMenu([file_details(file) for file in file_list] + ['0. Back'])
-    selected = menu.select_index(message='Select your file', clear_before=True)
+    clear_screen()
+    selected = menu.select_index(message='Select your file')
     if selected == len(file_list):
-        return mainMenu.select_action(clear_before=True)
+        clear_screen()
+        return mainMenu.select_action()
 
     return file_list[selected]
 
@@ -182,17 +273,25 @@ def file_details(file: dict) -> str:
 
 
 def load_keys():
-    utils.clear_screen()
+    clear_screen()
     priv_path = input(f"Private key path (empty for {DEFAULT_PRIV_PATH}): ")
     if priv_path == '':
         priv_path = DEFAULT_PRIV_PATH
 
-    utils.clear_screen()
+    clear_screen()
 
     with open(priv_path, "rb") as priv_file:
         priv_key = serialization.load_pem_private_key(priv_file.read(), password=None)
 
     return {'private': priv_key, 'public': priv_key.public_key()}
+
+
+def errorMenu(message: str, again_action: Callable, back_action: Callable):
+    print('')
+    return SelectMenu(
+        message=f"Error: {message}",
+        choices={'1. Try again': again_action, '2. Go back': lambda: clear_before(back_action)}
+    )
 
 
 registerMenu = SelectMenu({
@@ -216,7 +315,7 @@ mainMenu = SelectMenu({
     '0. Exit': action_exit
 }, message="Main Menu")
 
-utils.clear_screen()
+clear_screen()
 
 
 def dev():

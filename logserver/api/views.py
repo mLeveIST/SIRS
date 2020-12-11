@@ -22,13 +22,13 @@ from .serializers import RegisterSerializer, UserSerializer, LogSerializer, Data
 from .validators import is_valid_upload_file_request, is_valid_update_file_request, is_valid_access, is_valid_signature, validate_response
 
 
-FILESERVER_URL = "https://file/api" # For prod
-BACKUPSERVER1_URL = "https://bs1/api" # For prod
-BACKUPSERVER2_URL = "https://bs2/api" # For prod
+FILESERVER_URL = "https://file/api"  # For prod
+BACKUPSERVER1_URL = "https://bs1/api"  # For prod
+BACKUPSERVER2_URL = "https://bs2/api"  # For prod
 
-#FILESERVER_URL = "http://localhost:8001/api" # For dev
-#BACKUPSERVER1_URL = "http://localhost:8002/api" # For dev
-#BACKUPSERVER2_URL = "http://localhost:8003/api" # For dev
+FILESERVER_URL = "http://localhost:8001/api"  # For dev
+# BACKUPSERVER1_URL = "http://localhost:8002/api" # For dev
+# BACKUPSERVER2_URL = "http://localhost:8003/api" # For dev
 
 
 # ---------------------------------------- #
@@ -37,8 +37,6 @@ BACKUPSERVER2_URL = "https://bs2/api" # For prod
 
 @api_view(['POST'])
 def register_user(request):
-    print(request)
-    print(DEFAULT_CA_BUNDLE_PATH)
     serial = RegisterSerializer(data=request.data)
 
     serial.is_valid(raise_exception=True)
@@ -267,12 +265,12 @@ def backup_data(request):
     serial = DataSerializer(latest_logs, many=True)
 
     for entry in serial.data:
-        entry['contributors'] = list(Log.objects \
-            .filter(file_id=entry['file_id'], version=0) \
-            .values_list('user_id', flat=True) \
-            .order_by('user_id'))
+        entry['contributors'] = list(Log.objects
+                                     .filter(file_id=entry['file_id'], version=0)
+                                     .values_list('user_id', flat=True)
+                                     .order_by('user_id'))
 
-    data_responses = backup_data_to([BACKUPSERVER1_URL], serial.data) # Colocar na lista bakup server 2 tb
+    data_responses = backup_data_to([BACKUPSERVER1_URL], serial.data)  # Colocar na lista bakup server 2 tb
 
     system_status = []
     for response in data_responses:
@@ -281,7 +279,7 @@ def backup_data(request):
 
         system_status.append(response.json()['system_status'])
 
-    if sum(system_status) == len(data_responses): # everything OK
+    if sum(system_status) == len(data_responses):  # everything OK
 
         backup_serial = BackupSerializer(data={
             'timestamp': backup_timestamp,
@@ -291,7 +289,7 @@ def backup_data(request):
         backup_serial.save()
 
         return Response(status=status.HTTP_202_ACCEPTED)
-    elif sum(system_status) == 0: # file Server corruption
+    elif sum(system_status) == 0:  # file Server corruption
         recovery = recover_data_from(FILESERVER_URL, 1)
 
         if recovery.status_code != 200:
@@ -301,7 +299,7 @@ def backup_data(request):
         Log.objects.filter(timestamp__gt=last_backup_date).delete()
 
         return Response(status=status.HTTP_205_RESET_CONTENT)
-    else: # one backup server corrupt
+    else:  # one backup server corrupt
         backup_serial = BackupSerializer(data={
             'timestamp': backup_timestamp,
             'successful': True})
@@ -314,4 +312,3 @@ def backup_data(request):
         # Logs Server is not able to force BU Server to backup from FS
 
     return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
