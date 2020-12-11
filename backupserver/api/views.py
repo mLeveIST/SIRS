@@ -17,7 +17,7 @@ from .serializers import DataSerializer
 from .validators import check_integrity
 
 
-FILESERVER_URL = "https://log/api" # For Prod
+FILESERVER_URL = "https://file/api" # For Prod
 #FILESERVER_URL = "http://localhost:8001/api" # For dev
 
 
