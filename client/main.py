@@ -37,7 +37,15 @@ def action_login():
     pw = getpass("Password: ")
 
     try:
-        token = api.login(username, pw)["token"]
+        response = api.login(username, pw)
+        token = response["token"]
+        if response.get('role', 'user') == 'staff':
+            global mainMenu
+            mainMenu = SelectMenu(
+                mainMenu.choices[:-1] + ['5. Backup files'] + mainMenu.choices[-1:],
+                mainMenu.actions[:-1] + [action_backup] + mainMenu.actions[-1:],
+                message='Main Menu (Admin)'
+            )
     except ServerException as e:
         if is_client_error(e.status):
             return errorMenu(e.error_message, action_login, startMenu.select_action).select_action()
@@ -237,6 +245,20 @@ def action_list_files():
 
     input(bold("\nPress any key to go back to the menu..."))
     clear_screen()
+    return mainMenu.select_action()
+
+
+def action_backup():
+    try:
+        api.backup_files(token)
+    except ServerException as e:
+        if is_client_error(e.status):
+            return errorMenu(e.error_message, action_backup, mainMenu.select_action).select_action()
+        else:
+            raise e
+
+    clear_screen()
+    print("Backup succeeded!")
     return mainMenu.select_action()
 
 

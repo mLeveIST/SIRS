@@ -3,16 +3,15 @@ from json import loads
 
 from django.db import transaction
 from django.db.models import Max, Q, F
-from django.http import HttpResponse, FileResponse
+from django.http import HttpResponse
 
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
-from requests.utils import DEFAULT_CA_BUNDLE_PATH
 
 from logserver.utils import requests_to_django
 
@@ -27,13 +26,29 @@ BACKUPSERVER1_URL = "https://bs1/api"  # For prod
 BACKUPSERVER2_URL = "https://bs2/api"  # For prod
 
 FILESERVER_URL = "http://localhost:8001/api"  # For dev
-# BACKUPSERVER1_URL = "http://localhost:8002/api" # For dev
-# BACKUPSERVER2_URL = "http://localhost:8003/api" # For dev
+BACKUPSERVER1_URL = "http://localhost:8002/api"  # For dev
+BACKUPSERVER2_URL = "http://localhost:8003/api"  # For dev
 
 
 # ---------------------------------------- #
 # Services to be called by Client Machines #
 # ---------------------------------------- #
+
+class login_user(ObtainAuthToken):
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, _ = Token.objects.get_or_create(user=user)
+
+        response = {'token': token.key}
+        if user.is_staff:
+            response['role'] = 'staff'
+
+        return Response(response)
+
 
 @api_view(['POST'])
 def register_user(request):
@@ -252,6 +267,7 @@ def report_file(request, file_id):
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
 def backup_data(request):
     backup_timestamp = datetime.now()
 

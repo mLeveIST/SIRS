@@ -17,8 +17,8 @@ from .serializers import DataSerializer
 from .validators import check_integrity
 
 
-FILESERVER_URL = "https://file/api" # For Prod
-#FILESERVER_URL = "http://localhost:8001/api" # For dev
+FILESERVER_URL = "https://file/api"  # For Prod
+FILESERVER_URL = "http://localhost:8001/api"  # For dev
 
 
 # ------------------------------------ #
@@ -28,29 +28,29 @@ FILESERVER_URL = "https://file/api" # For Prod
 @api_view(['POST'])
 def backup_data(request):
 
-	logs_data = loads(request.data['json'])
+    logs_data = loads(request.data['json'])
 
-	files_data = requests.get(f"{FILESERVER_URL}/data/", verify='/etc/ssl/certs/rootCA.crt')
+    files_data = requests.get(f"{FILESERVER_URL}/data/")
 
-	if files_data.status_code != 200:
-		return Response(status=files_data.status_code)
+    if files_data.status_code != 200:
+        return Response(status=files_data.status_code)
 
-	if utils.empty_directory('sharedfiles'):
-		return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    if utils.empty_directory('sharedfiles'):
+        return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-	utils.backup_cmd('mediarestore')
-	utils.backup_cmd('dbrestore')
+    utils.backup_cmd('mediarestore')
+    utils.backup_cmd('dbrestore')
 
-	system_status = check_integrity(files_data.json(), logs_data)
+    system_status = check_integrity(files_data.json(), logs_data)
 
-	if system_status:
-		utils.backup_cmd('mediabackup', '--output-path=backups/files_backup.tar')
-		utils.backup_cmd('dbbackup', '--output-path=backups/db_backup.dump')
+    if system_status:
+        utils.backup_cmd('mediabackup', '--output-path=backups/files_backup.tar')
+        utils.backup_cmd('dbbackup', '--output-path=backups/db_backup.dump')
 
-	utils.remove_files('files')
-	management.call_command('flush', verbosity=0, interactive=False)
+    utils.remove_files('files')
+    management.call_command('flush', verbosity=0, interactive=False)
 
-	return Response({'system_status': system_status}, status=status.HTTP_200_OK)
+    return Response({'system_status': system_status}, status=status.HTTP_200_OK)
 
 
 # ------------------------------------- #
@@ -59,30 +59,15 @@ def backup_data(request):
 
 @api_view(['GET'])
 def get_data(request):
-	utils.backup_cmd('mediarestore', '--input-path=backups/files_backup.tar')
-	utils.backup_cmd('dbrestore', '--input-path=backups/db_backup.dump')
+    utils.backup_cmd('mediarestore', '--input-path=backups/files_backup.tar')
+    utils.backup_cmd('dbrestore', '--input-path=backups/db_backup.dump')
 
-	utils.backup_cmd('mediabackup', '--clean')
-	utils.backup_cmd('dbbackup', '--clean')
+    utils.backup_cmd('mediabackup', '--clean')
+    utils.backup_cmd('dbbackup', '--clean')
 
-	utils.remove_files('files')
-	management.call_command('flush', verbosity=0, interactive=False)
+    utils.remove_files('files')
+    management.call_command('flush', verbosity=0, interactive=False)
 
-	file_data = DataSerializer(File.objects.all(), many=True)
+    file_data = DataSerializer(File.objects.all(), many=True)
 
-	return Response(file_data.data, status=status.HTTP_200_OK)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    return Response(file_data.data, status=status.HTTP_200_OK)

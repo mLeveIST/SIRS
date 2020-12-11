@@ -54,7 +54,7 @@ def upload_file(request):
 
 @api_view(['PUT'])
 def update_file(request, file_id):
-    
+
     data = loads(request.data['json'])
 
     with transaction.atomic():
@@ -66,7 +66,7 @@ def update_file(request, file_id):
 
         for user in data['contributors']:
 
-            key = Key.objects.get(file_id=file_id , user_id=user['user_id'])
+            key = Key.objects.get(file_id=file_id, user_id=user['user_id'])
             key_serial = KeySerializer(
                 instance=key,
                 data={'key': user['key']},
@@ -92,7 +92,7 @@ def download_file(request, user_id, file_id):
     file = File.objects.get(id=file_id).file
     key = Key.objects.get(user_id=user_id, file_id=file_id)
 
-    file.open() # seek(0)
+    file.open()  # seek(0)
 
     path = os.path.join(settings.SENDFILE_ROOT, file.path)
     response = sendfile(request, path, attachment=True)
@@ -110,10 +110,11 @@ def get_file_data(request, file_id):
 # Services to be called by Backup Servers #
 # --------------------------------------- #
 
+
 @api_view(['GET'])
 def recover_data(request, bserver_id):
-    response = requests.get(f"https://bs{bserver_id}/api/data/") # For prod
-    #response = requests.get(f"http://localhost:800{bserver_id}/api/data/") # For dev
+    # response = requests.get(f"https://bs{bserver_id}/api/data/") # For prod
+    response = requests.get(f"http://localhost:800{bserver_id}/api/data/")  # For dev
 
     if response.status_code != 200:
         return Response(status=response.status_code)
@@ -138,4 +139,3 @@ def get_data(request):
     serial = DataSerializer(File.objects.all(), many=True)
 
     return Response(serial.data, status=status.HTTP_200_OK)
-

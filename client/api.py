@@ -107,3 +107,12 @@ def report_file(token: str, file_id: int) -> dict:
     validate_response(response)  # raise_exception=False -> handle exception, what to do?
 
     return {'status': response.status_code}
+
+
+def backup_files(token: str):
+    headers = {'Authorization': f'Token {token}'}
+
+    response = requests.get(api_url('files/backup/'), headers=headers)
+    validate_response(response)
+
+    return response.json()
