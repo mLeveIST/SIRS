@@ -1,0 +1,23 @@
+- hosts: bs
+  become: yes
+  become_method: sudo
+  gather_facts: no
+
+  tasks:
+
+  - name: Upgrade all apt packages
+    apt: upgrade=dist force_apt_get=yes
+
+  - name: install openvpn
+    apt:
+      name: openvpn
+      state: present
+      update_cache: yes
+
+  - name: copy ovpn to /etc/openvpn
+    copy:
+      src: /home/vagrant/control/{{ inventory_hostname }}.ovpn
+      dest: /etc/openvpn/{{ inventory_hostname }}.conf
+      group: root
+      owner: root
+

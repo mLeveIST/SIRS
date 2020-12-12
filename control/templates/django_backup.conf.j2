@@ -1,0 +1,39 @@
+<VirtualHost *:80>
+    ServerName  {{ ansible_hostname }}
+    Redirect / https://{{ ansible_hostname }}:443/
+</VirtualHost>
+
+<VirtualHost _default_:443>
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/certs/{{ ansible_hostname }}.crt
+    SSLCertificateKeyFile /etc/ssl/certs/{{ ansible_hostname }}.key
+    SSLCertificateChainFile /etc/ssl/certs/rootCA.crt
+
+    ServerAdmin webmaster@tp.dsi.tecnico.ulisboa.pt
+    ServerName  {{ ansible_hostname }}
+
+    DocumentRoot /var/repo/backupserver
+
+    LogLevel warn
+    ErrorLog /var/log/apache2/{{ ansible_hostname }}-error.log
+    CustomLog /var/log/apache2/{{ ansible_hostname }}-access.log combined
+
+    WSGIScriptReloading On
+    WSGIDaemonProcess {{ ansible_hostname }}_server python-path=/var/repo/backupserver
+    WSGIProcessGroup {{ ansible_hostname }}_server
+    WSGIApplicationGroup {{ ansible_hostname }}_server
+    WSGIPassAuthorization On
+    WSGIApplicationGroup %{GLOBAL}
+    WSGIScriptAlias / /var/repo/backupserver/backupserver/wsgi.py
+
+    <Location "/">
+    Require all granted
+    </Location>
+
+    Alias /static {{ ansible_hostname }}server/static
+    <Location "/static">
+    SetHandler None
+    </Location>
+</Virtualhost>
+
+WSGISocketPrefix /var/run/wsgi

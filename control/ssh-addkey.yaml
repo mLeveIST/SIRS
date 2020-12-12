@@ -1,0 +1,29 @@
+---
+- hosts: all
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  remote_user: vagrant
+
+  tasks:
+
+    # To operate remotely in critical files without direct user input
+  - name: Remove require tty - alt
+    lineinfile:
+      regexp: "requiretty"
+      dest: /etc/sudoers.d/os_defaults
+      state: absent 
+
+  - name: Validate the sudoers file before saving not to require password
+    lineinfile:
+      dest: /etc/sudoers
+      state: present
+      regexp: '^%ADMIN ALL='
+      line: '%ADMIN ALL=(ALL) NOPASSWD: ALL'
+      validate: /usr/sbin/visudo -cf %s 
+
+  - name: install ssh key
+    authorized_key:
+      user: vagrant
+      key: "{{ lookup('file', '/home/vagrant/.ssh/id_rsa.pub') }}"
+      state: present

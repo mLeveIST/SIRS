@@ -1,0 +1,92 @@
+# File Server
+- hosts: file
+  become: yes
+  become_method: sudo
+  gather_facts: no
+
+  tasks:
+
+  - name: Upgrade all apt packages
+    apt: upgrade=dist force_apt_get=yes
+
+  - name: install nfs
+    apt:
+      name: nfs-kernel-server
+      state: present
+      update_cache: yes
+
+  - name: create nfs directory
+    shell:
+      cmd: sudo mkdir -p /mnt/sharedfiles
+
+  - name: reset group permissions of shared folder
+    shell:
+      cmd: sudo chown -R nobody:nogroup /mnt/sharedfiles
+
+  - name: set rw permission
+    shell:
+      cmd: sudo chmod 777 /mnt/sharedfiles
+
+  - name: write our nfs bs permission
+    blockinfile:
+      path: /etc/exports
+      block: |
+        /mnt/sharedfiles  10.8.0.2(rw,sync,no_subtree_check)
+        /mnt/sharedfiles  10.8.0.3(rw,sync,no_subtree_check)
+
+  - name: export permissions
+    shell:
+      cmd: exportfs -a
+    notify: restart nfs
+
+  - name: start nfs
+    service:
+      name: nfs-kernel-server
+      state: started
+
+  - name: create links to nfs folders
+    shell:
+      cmd: ln -s /mnt/sharedfiles /var/repo/fileserver
+
+  handlers:
+
+  - name: restart nfs
+    service:
+      name: nfs-kernel-server
+      state: restarted
+
+# Backup Servers
+- hosts: bs
+  become: yes
+  become_method: sudo
+  gather_facts: no
+
+  tasks:
+
+  - name: Upgrade all apt packages
+    apt: upgrade=dist force_apt_get=yes
+
+  - name: install nfs
+    apt:
+      name: nfs-common
+      state: present
+      update_cache: yes
+
+  - name: create nfs directory
+    shell:
+      cmd: sudo mkdir -p /mnt/sharedfiles
+
+  - name: mount shared folder
+    mount:
+      path: /mnt/sharedfiles
+      src: 10.8.0.1:/mnt/sharedfiles
+      fstype: auto
+      state: mounted
+
+  - name: create links to nfs folders
+    shell:
+      cmd: ln -s /mnt/sharedfiles /var/repo/backupserver
+
+  - name: change owner of sharedfiles
+    shell:
+      cmd: chown -h www-data:www-data /var/repo/backupserver/sharedfiles
