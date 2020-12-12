@@ -6,3 +6,4 @@
 - [API Requests](./docs/API.md)
 - [How to install infrastructure](./docs/INFRASTRUCTURE.md)
 - [How to run the client](./docs/CLIENT.md)
+- [Attacks test examples](./docs/ATTACKS.md)

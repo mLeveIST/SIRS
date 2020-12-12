@@ -44,6 +44,14 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['username', 'pubkey']
 
 
+class PubkeySerializer(serializers.ModelSerializer):
+    pubkey = RSAPublicKeyField()
+
+    class Meta:
+        model = User
+        fields = ['pubkey']
+
+
 class LogSerializer(serializers.ModelSerializer):
     class Meta:
         model = Log
@@ -62,4 +70,3 @@ class DataSerializer(serializers.ModelSerializer):
     class Meta:
         model = Log
         fields = ['file_id', 'user_id', 'version', 'signature', 'pubkey']
-

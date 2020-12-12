@@ -17,7 +17,7 @@ from logserver.utils import requests_to_django
 
 from .models import User, Log, Backup
 from .requests import upload_file_to, update_file_to, list_files_from, download_file_from, get_file_data_from, backup_data_to, recover_data_from
-from .serializers import RegisterSerializer, UserSerializer, LogSerializer, DataSerializer, BackupSerializer
+from .serializers import PubkeySerializer, RegisterSerializer, UserSerializer, LogSerializer, DataSerializer, BackupSerializer
 from .validators import is_valid_upload_file_request, is_valid_update_file_request, is_valid_access, is_valid_signature, validate_response
 
 
@@ -25,7 +25,7 @@ FILESERVER_URL = "https://file/api"  # For prod
 BACKUPSERVER1_URL = "https://bs1/api"  # For prod
 BACKUPSERVER2_URL = "https://bs2/api"  # For prod
 
-#FILESERVER_URL = "http://localhost:8001/api"  # For dev
+# FILESERVER_URL = "http://localhost:8001/api"  # For dev
 # BACKUPSERVER1_URL = "http://localhost:8002/api" # For dev
 # BACKUPSERVER2_URL = "http://localhost:8003/api" # For dev
 
@@ -41,13 +41,21 @@ class login_user(ObtainAuthToken):
                                            context={'request': request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
+
+        if 'pubkey' in request.data and not user.is_staff:
+            pubkey = PubkeySerializer(instance=user).data['pubkey']
+            serial = PubkeySerializer(data=request.data)
+            serial.is_valid(raise_exception=True)
+            if pubkey != serial.data['pubkey']:
+                return Response({'pubkey': 'Public key must be the same used when registered'}, status=status.HTTP_400_BAD_REQUEST)
+
         token, _ = Token.objects.get_or_create(user=user)
 
         response = {'token': token.key}
         if user.is_staff:
             response['role'] = 'staff'
 
-        return Response(response)
+        return Response(response, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -305,7 +313,7 @@ def backup_data(request):
         backup_serial.is_valid(raise_exception=True)
         backup_serial.save()
 
-        return Response(status=status.HTTP_202_ACCEPTED)
+        return Response({'status': 'Backup Succeeded'}, status=status.HTTP_202_ACCEPTED)
     elif sum(system_status) == 0:  # file Server corruption
         recovery = recover_data_from(FILESERVER_URL, 2)
 
@@ -315,7 +323,7 @@ def backup_data(request):
         last_backup_date = Backup.objects.latest('timestamp').timestamp
         Log.objects.filter(timestamp__gt=last_backup_date).delete()
 
-        return Response(status=status.HTTP_205_RESET_CONTENT)
+        return Response({'status': 'Integrity Error. Rollbacking to a previous backup'}, status=status.HTTP_205_RESET_CONTENT)
     else:  # one backup server corrupt
         backup_serial = BackupSerializer(data={
             'timestamp': backup_timestamp,

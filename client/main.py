@@ -37,7 +37,7 @@ def action_login():
     pw = getpass("Password: ")
 
     try:
-        response = api.login(username, pw)
+        response = api.login(username, pw, key_pair['public'])
         token = response["token"]
         if response.get('role', 'user') == 'staff':
             global mainMenu
@@ -264,7 +264,7 @@ def action_list_files():
 
 def action_backup():
     try:
-        api.backup_files(token)
+        response = api.backup_files(token)
     except ServerException as e:
         if is_client_error(e.status):
             return errorMenu(e.error_message, action_backup, mainMenu.select_action).select_action()
@@ -272,7 +272,7 @@ def action_backup():
             raise e
 
     clear_screen()
-    print("Backup succeeded!")
+    print(response['status'])
     return mainMenu.select_action()
 
 
@@ -355,13 +355,13 @@ clear_screen()
 
 
 def dev():
-    global token, username, key_pair
-    username = 'rickerp'
-    token = api.login(username, 'pass1234')["token"]
-    with open('private.pem', "rb") as priv_file:
-        priv_key = serialization.load_pem_private_key(priv_file.read(), password=None)
-        key_pair = {'private': priv_key, 'public': priv_key.public_key()}
-
+    global mainMenu
+    mainMenu = SelectMenu(
+        mainMenu.choices[:-1] + ['5. Backup files'] + mainMenu.choices[-1:],
+        mainMenu.actions[:-1] + [action_backup] + mainMenu.actions[-1:],
+        message='Main Menu (Admin)'
+    )
+    print('Integrity Error. Rollbacking to a previous backup')
     mainMenu.select_action()
 
 

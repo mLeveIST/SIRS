@@ -5,8 +5,7 @@ from utils import validate_response, bytes_to_string, string_to_bytes, json_payl
 
 requests.packages.urllib3.disable_warnings()
 SERVER_IP = "log"  # for prod
-#SERVER_IP = "localhost:8000"  # for dev
-session_token = ""
+# SERVER_IP = "localhost:8000"  # for dev
 
 
 def api_url(route: str): return f"https://{SERVER_IP}/api/{route}"
@@ -27,8 +26,12 @@ def register(username: str, password: str, pubkey: RSAPublicKey) -> dict:
     return response.json()
 
 
-def login(username: str, password: str) -> dict:
+def login(username: str, password: str, pubkey: RSAPublicKey = None) -> dict:
     login_data = {"username": username, "password": password}
+    if pubkey != None:
+        pubkey_serialized = pubkey.public_bytes(encoding=serialization.Encoding.PEM,
+                                                format=serialization.PublicFormat.PKCS1)
+        login_data['pubkey'] = pubkey_serialized
 
     response = requests.post(api_url("users/login/"), data=login_data)
     validate_response(response, raise_exception=True)
@@ -113,5 +116,5 @@ def backup_files(token: str):
 
     response = requests.get(api_url('files/backup/'), headers=headers)
     validate_response(response)
-    input(response.status_code)
-    return {}
+
+    return response.json()
