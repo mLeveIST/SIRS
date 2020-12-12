@@ -52,8 +52,9 @@ def check_db_relations(file: dict, log: dict) -> bool:
 
 def check_digest(file: dict, log: dict) -> bool:
 	version = log['version']
-
-	with open(f"files/{file['file']}", 'rb') as fd:
+	location = f"/var/repo/backupserver/files{file['file']}" #For prod
+	#location = f"files/{file['file']}" # For dev
+	with open(location, 'rb') as fd:
 		edata = fd.read()
 
 	ekeys = [utils.string_to_bytes(key['key'])[:-12] for key in file['keys']]

@@ -3,8 +3,9 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.core.validators import MinValueValidator
 
-from fileserver import utils
+from backupserver import utils
 from django.conf import settings
+
 
 class File(models.Model):
 	file = models.FileField(upload_to='%Y%m%d%H%M%S/')
@@ -19,9 +20,7 @@ def file_update(sender, **kwargs):
 
 	if instance.id:
 		file_path = str(File.objects.get(id=instance.id).file).split('/')[0]
-		location = f"/var/repo/fileserver/files/{file_path}" #For prod
-		#location = f"files/{file_path}" #For dev
-		utils.remove_files(location, remove_self=True)
+		utils.remove_files(f"files/{file_path}", remove_self=True)
 
 
 class Key(models.Model):

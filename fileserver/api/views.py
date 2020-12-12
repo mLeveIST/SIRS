@@ -19,6 +19,8 @@ from .serializers import *
 import os
 import requests
 
+location = "/var/repo/fileserver/" #For prod
+#location = "" #For dev
 
 # ------------------------------------ #
 # Services to be called by Logs Server #
@@ -113,16 +115,16 @@ def get_file_data(request, file_id):
 
 @api_view(['GET'])
 def recover_data(request, bserver_id):
-    # response = requests.get(f"https://bs{bserver_id}/api/data/") # For prod
-    response = requests.get(f"http://localhost:800{bserver_id}/api/data/")  # For dev
+    response = requests.get(f"https://bs{bserver_id}/api/data/") # For prod
+    #response = requests.get(f"http://localhost:800{bserver_id}/api/data/")  # For dev
 
     if response.status_code != 200:
         return Response(status=response.status_code)
 
-    if utils.empty_directory('sharedfiles'):
+    if utils.empty_directory(location + 'sharedfiles'):
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    utils.remove_files('files')
+    utils.remove_files(location + 'files')
     management.call_command('flush', verbosity=0, interactive=False)
 
     utils.backup_cmd('mediarestore')

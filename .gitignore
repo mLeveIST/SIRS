@@ -27,8 +27,12 @@ db.sqlite3
 # Temporary
 migrations/
 fileserver/files/*
-backupserver/files/*
+backupserver1/files/*
+backupserver2/files/*
 fileserver/sharedfiles
 client/*.txt
-client/*.pem
 client/client.py
+
+backupserver2/sharedfiles
+
+backupserver1/sharedfiles

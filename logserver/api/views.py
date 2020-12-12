@@ -25,9 +25,9 @@ FILESERVER_URL = "https://file/api"  # For prod
 BACKUPSERVER1_URL = "https://bs1/api"  # For prod
 BACKUPSERVER2_URL = "https://bs2/api"  # For prod
 
-FILESERVER_URL = "http://localhost:8001/api"  # For dev
-BACKUPSERVER1_URL = "http://localhost:8002/api"  # For dev
-BACKUPSERVER2_URL = "http://localhost:8003/api"  # For dev
+#FILESERVER_URL = "http://localhost:8001/api"  # For dev
+# BACKUPSERVER1_URL = "http://localhost:8002/api" # For dev
+# BACKUPSERVER2_URL = "http://localhost:8003/api" # For dev
 
 
 # ---------------------------------------- #
@@ -253,7 +253,7 @@ def report_file(request, file_id):
     try:
         is_valid_signature(file_response.content, data, log.user_id, log.version)
     except ValidationError:
-        recovery = recover_data_from(FILESERVER_URL, 1)
+        recovery = recover_data_from(FILESERVER_URL, 2)
 
         if recovery.status_code != 200:
             return Response(recovery.content, status=recovery.status_code)
@@ -286,7 +286,7 @@ def backup_data(request):
                                      .values_list('user_id', flat=True)
                                      .order_by('user_id'))
 
-    data_responses = backup_data_to([BACKUPSERVER1_URL], serial.data)  # Colocar na lista bakup server 2 tb
+    data_responses = backup_data_to([BACKUPSERVER1_URL, BACKUPSERVER2_URL], serial.data)  # Colocar na lista bakup server 2 tb
 
     system_status = []
     for response in data_responses:
@@ -306,7 +306,7 @@ def backup_data(request):
 
         return Response(status=status.HTTP_202_ACCEPTED)
     elif sum(system_status) == 0:  # file Server corruption
-        recovery = recover_data_from(FILESERVER_URL, 1)
+        recovery = recover_data_from(FILESERVER_URL, 2)
 
         if recovery.status_code != 200:
             return Response(recovery.content, status=recovery.status_code)

@@ -17,6 +17,7 @@ sudo apt-get update && sudo apt-get upgrade -y
 # install key
 cat /vagrant/control/id_rsa.pub >> /home/vagrant/.ssh/authorized_keys
 cp /vagrant/control/root* /home/vagrant/
+rm -f /var/repo/fileserver/sharedfiles
 
 
 # configure hosts file for the internal network defined by Vagrantfile
