@@ -216,6 +216,6 @@ Management Node with `ansible-playbook build.yaml` (recommended).
 If everything performed correctly then the infrastructure
 has been provided.
 
-#THE END
+# THE END
 
 
