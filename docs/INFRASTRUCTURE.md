@@ -23,8 +23,8 @@ structure:<br>
 ### Install vagrant (and plugins) and virtualbox
 Second, confirm you have installed vagrant 
 and virtualbox. We used the following versions:<br>
-#####- Vagrant 2.2.6<br>
-#####- 6.1.10_Ubuntur138449 VBOX<br>
+##### - Vagrant 2.2.6<br>
+##### - 6.1.10_Ubuntur138449 VBOX<br>
 
 #### Install vagrant plugin
 `vagrant plugin install vagrant-vbguest`<br>
@@ -48,9 +48,9 @@ It will create the following VMs:
 
 - `mgmt`: This VM is not part of the service, being
 its sole purpose is to be the Management Node. It's from
-  this VM, in the guest's `control` directory, that the ansible scripts will be run which,
-  in turn, will provide the other VM's with most modules
-  and configurations needed.
+this VM, in the guest's `control` directory, that the ansible scripts will be run which,
+in turn, will provide the other VM's with most modules
+and configurations needed.
   
 - `log`: This VM is where the *Log Server* will be configured.
 It is provisioned by the script `bootstrap-logserver.sh`
@@ -59,17 +59,22 @@ directory to the guest's `/var/repo/logserver` with permissions
 and ownership necessary for *apache2*.
 
 - `file`: This VM is where the *File Server* will be configured.
-  It is provisioned by the script `bootstrap-fileserver.sh`
-  and it has configured a shared folder from the host's `fileserver`
-  directory to the guest's `/var/repo/fileserver` with permissions
-  and ownership necessary for *apache2*.
+It is provisioned by the script `bootstrap-fileserver.sh`
+and it has configured a shared folder from the host's `fileserver`
+directory to the guest's `/var/repo/fileserver` with permissions
+and ownership necessary for *apache2*.
 
 - `bs1/bs2`: These VMs are where the *Backup Servers* will be configured.
-  They are provisioned by the script `bootstrap-backups.sh`
-  and they have configured a shared folder from the host's `backupserver1` 
-  and `backupserver2`, depending on if *bs1* or *bs2*, 
-  directory to the guest's `/var/repo/backupserver` 
-  with permissions and ownership necessary for *apache2*.
+They are provisioned by the script `bootstrap-backups.sh`
+and they have configured a shared folder from the host's `backupserver1` 
+and `backupserver2`, depending on if *bs1* or *bs2*, 
+directory to the guest's `/var/repo/backupserver` 
+with permissions and ownership necessary for *apache2*.
+
+- `client1/client2`: These VMs are where the *Clients* will be configured.
+They are provisioned by the script `bootstrap-client.sh`
+and they have benn configured a shared folder from the host's `client`
+directory to the guest's `/home/vagrant/client`.
   
 ### Ansible in Management node
 After all the `vagrant up` command is finished all
@@ -81,6 +86,9 @@ Confirm your *control* directory has been populated
 with the following files:
 
 - `bs1/bs2 .ovpn`: files necessary for the vpn connection afterwards.
+These were obtained by utilizing a third-party script found in 
+[Nyr/openvpn-install](https://github.com/Nyr/openvpn-install)
+just with a line commented out in order to pass input non-interactively.
 - `id_rsa/ id_rsa.pub`: keys for the ansible ssh password less setup.
 - `rootCA.crt / rootCA.key`: certificate and key for ou abstract CA:
   
@@ -120,7 +128,7 @@ and insert and config file in the *Backup Servers*.
 Now it is needed to ssh into both *Backup Servers* by
 doing `vagrant ssh bs1` and `vagrant ssh bs2`. Here 2
 commands have to be run in order to configure the vpn.
-Here is the example for *bs1* (for bs2 simply change the number
+Here is the example for *bs1* (for *bs2* simply change the number
 1 in each command):
 
 - `sudo openvpn --client --config /etc/openvpn/bs1.conf`: You can
@@ -141,7 +149,7 @@ python modules and libraries as well apache2 (and
 its dependencies) for the *Log/File/Backup Servers*.
 It will also install python module and pip3 in the client
 machines. Run the command 
-`` 
+`ansible-playbook install.yaml` 
 which will take some time to finish (approx 3-4 min.):
 
 ![](./infrastructure/assets/ansible_install.png)
@@ -150,7 +158,7 @@ Afterwards it is needed to ssh into *client1* and *client2*
 with `vagrant ssh client1` and `vagrant ssh client2`.
 There install the python libraries needed with
 `pip3 install -r client/requirements.txt`. This has
-to be done this way or an error will occur in another
+to be done this way, or an error will occur in another
 playbook task.
 
 Confirm if *cacert.pem* exists in folder
@@ -168,7 +176,7 @@ This will 5 playbooks in total which will take some time:
 - `add_ca.yaml`: This will install a certificate module
 and update said module with our abstract CA certificate.
   
-- `nfs.yaml`: This will setup an nfs server in the *File Server*, 
+- `nfs.yaml`: This will setup a nfs server in the *File Server*, 
 export a "mountable" directory for the *Backup Servers*. It
 will also create *symlinks* from this "mountable" directory
 to */var/repo/fileserver/ and to */var/repo/backupserver*, in
@@ -193,7 +201,7 @@ The output should be similar to the following:
 
 ### Setting up database and Launching the Server
 
-For this first go to each server's folder 
+For this first step go to each server's folder 
 (ex: /var/repo/logserver for *Log Server*) in the
 guest's machines and run the following commands
 (with an example output for the *Log Server*:
