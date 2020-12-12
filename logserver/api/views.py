@@ -295,7 +295,7 @@ def backup_data(request):
                                      .order_by('user_id'))
 
     data_responses = backup_data_to([BACKUPSERVER1_URL, BACKUPSERVER2_URL],
-                                    serial.data)  # Colocar na lista bakup server 2 tb
+                                    serial.data) 
 
     system_status = []
     for response in data_responses:
@@ -332,6 +332,7 @@ def backup_data(request):
         backup_serial.is_valid(raise_exception=True)
         backup_serial.save()
 
+        # EXTRA WORK:
         # Ignore wrong BU Server?
         # Place BU server in black list until a physical fix is done?
         # Logs Server is not able to force BU Server to backup from FS
