@@ -46,19 +46,19 @@ to their provision script.
 This will take a couple of minutes (approx. 15).
 It will create the following VMs:
 
-- `mgmt`: This VM is not part of the service, being
+- `mgmt`: This VM is not part of the service, seeing as
 its sole purpose is to be the Management Node. It's from
 this VM, in the guest's `control` directory, that the ansible scripts will be run which,
 in turn, will provide the other VM's with most modules
 and configurations needed.
   
-- `log`: This VM is where the *Log Server* will be configured.
+- `log`: This VM is where the *Logs Server* will be configured.
 It is provisioned by the script `bootstrap-logserver.sh`
 and it has configured a shared folder from the host's `logserver`
 directory to the guest's `/var/repo/logserver` with permissions
 and ownership necessary for *apache2*.
 
-- `file`: This VM is where the *File Server* will be configured.
+- `file`: This VM is where the *Files Server* will be configured.
 It is provisioned by the script `bootstrap-fileserver.sh`
 and it has configured a shared folder from the host's `fileserver`
 directory to the guest's `/var/repo/fileserver` with permissions
@@ -73,12 +73,12 @@ with permissions and ownership necessary for *apache2*.
 
 - `client1/client2`: These VMs are where the *Clients* will be configured.
 They are provisioned by the script `bootstrap-client.sh`
-and they have benn configured a shared folder from the host's `client`
+and they have configured a shared folder from the host's `client`
 directory to the guest's `/home/vagrant/client`.
   
 ### Ansible in Management node
-After all the `vagrant up` command is finished all
-VMs should be running like such when running `vagrant status:
+After the `vagrant up` command is finished all
+VMs should be running like such when running `vagrant status`:
 
 ![](./infrastructure/assets/vagrant_running.png)
 
@@ -90,7 +90,7 @@ These were obtained by utilizing a third-party script found in
 [Nyr/openvpn-install](https://github.com/Nyr/openvpn-install)
 just with a line commented out in order to pass input non-interactively.
 - `id_rsa/ id_rsa.pub`: keys for the ansible ssh password less setup.
-- `rootCA.crt / rootCA.key`: certificate and key for ou abstract CA:
+- `rootCA.crt / rootCA.key`: certificate and key for our abstract CA:
   
 Next you need to ssh into the Management Node by doing
 `vagrant ssh mgmt`. Change directory into the control shared
@@ -108,7 +108,7 @@ While most the steps are automated in our main playbook
 **all_playbooks.yaml**, some steps have to be run first
 otherwise some errors can occur.
 
-Next playbook to run has to be *ssh-addkey.yaml* with
+First playbook to run has to be *ssh-addkey.yaml* with
 the option *--ask-pass* which will then prompt for a password,
 being the default password that
 was used **vagrant**. Run the command 
@@ -117,11 +117,12 @@ The output should be the following:
 
 ![](./infrastructure/assets/ansible_sshkey.png)
 
-##### Configure VPN between *File Server* and *Backup Servers*
+##### Configure VPN between *Files Server* and *Backup Servers*
 
-After the playbook for the vpn has to be run with the command
+After, the next playbook that has to be run
+is the *vpn.yaml* with the command
 `ansible-playbook vpn.yaml`. This will install openvpn
-and insert and config file in the *Backup Servers*.
+and insert and config vpn files in the *Backup Servers*.
 
 ![](./infrastructure/assets/ansible_vpn_play.png)
 
@@ -171,16 +172,16 @@ as such:
 
 To conclude, the final playbook has to be run
 with the command `ansible-playbook all_playbooks.yaml`.
-This will 5 playbooks in total which will take some time:
+This will run 5 playbooks in total, which will take some time:
 
 - `add_ca.yaml`: This will install a certificate module
 and update said module with our abstract CA certificate.
   
-- `nfs.yaml`: This will setup a nfs server in the *File Server*, 
+- `nfs.yaml`: This will setup a nfs server in the *Files Server*, 
 export a "mountable" directory for the *Backup Servers*. It
 will also create *symlinks* from this "mountable" directory
 to */var/repo/fileserver/ and to */var/repo/backupserver*, in
-the *File Server* and *Backup Servers respectively. This will fail
+the *Files Server* and *Backup Servers respectively. This will fail
 if the *sharedfiles* link exists so make sure to delete it in all
 three servers before running. If it is forgotten then remove the *sharedfiles*
 and rerun the play *all_plpaybooks.yaml*.
@@ -202,9 +203,9 @@ The output should be similar to the following:
 ### Setting up database and Launching the Server
 
 For this first step go to each server's folder 
-(ex: /var/repo/logserver for *Log Server*) in the
+(ex: /var/repo/logserver for *Logs Server*) in the
 guest's machines and run the following commands
-(with an example output for the *Log Server*:
+(with an example output for the *Logs Server*:
 
 - `sudo python3 manage.py makemigrations api`
   

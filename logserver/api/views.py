@@ -25,7 +25,7 @@ FILESERVER_URL = "https://file/api"  # For prod
 BACKUPSERVER1_URL = "https://bs1/api"  # For prod
 BACKUPSERVER2_URL = "https://bs2/api"  # For prod
 
-FILESERVER_URL = "http://localhost:8001/api"  # For dev
+#FILESERVER_URL = "http://localhost:8001/api"  # For dev
 # BACKUPSERVER1_URL = "http://localhost:8002/api" # For dev
 # BACKUPSERVER2_URL = "http://localhost:8003/api" # For dev
 
