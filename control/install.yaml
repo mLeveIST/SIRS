@@ -34,9 +34,5 @@
         state: latest
         update_cache: yes
 
-    - name: pip install requirements
-      shell:
-        cmd: pip3 install -r /home/vagrant/client/requirements.txt --no-cache-dir
-
     - name: Upgrade all apt packages
       apt: upgrade=dist force_apt_get=yes
