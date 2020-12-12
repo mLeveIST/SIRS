@@ -60,7 +60,10 @@ def action_register(key_method):
     global token, key_pair, username
     if key_method == 'generate':
         key_pair = generate_RSA_keys()
-        with open(input(f"Save private key as (empty for {DEFAULT_PRIV_PATH}): "), "wb") as f:
+        priv_path = input(f"Save private key as (empty for {DEFAULT_PRIV_PATH}): ")
+        if priv_path == '':
+            priv_path = DEFAULT_PRIV_PATH
+        with open(priv_path, "wb") as f:
             f.write(
                 key_pair['private'].private_bytes(
                     encoding=serialization.Encoding.PEM,
@@ -77,17 +80,28 @@ def action_register(key_method):
             elif isinstance(e, ValueError):
                 return errorMenu("File not a valid RSA private key.", action_login, startMenu.select_action).select_action()
 
-    print(bold("Register\n"))
-    username = input("Username: ")
-    password = getpass("Password: ")
-    if password != getpass("Confirm Password: "):
-        return errorMenu("Passwords must match.", action_register, startMenu.select_action).select_action()
+    while True:
+        clear_screen()
+        print(bold("Register\n"))
+        username = input("Username: ")
+        password = getpass("Password: ")
+        if password != getpass("Confirm Password: "):
+            menu = errorMenu("Passwords must match.", clear_screen, startMenu.select_action)
+            if menu.select_index() == 1:
+                return menu.actions[1]()
+            continue
+        break
 
     try:
         token = api.register(username, password, key_pair['public'])['token']
     except ServerException as e:
         if is_client_error(e.status):
-            return errorMenu(e.error_message, action_register, startMenu.select_action).select_action()
+            clear_screen()
+            return errorMenu(
+                e.error_message,
+                lambda: action_register(key_method),
+                startMenu.select_action
+            ).select_action()
         else:
             raise e
 

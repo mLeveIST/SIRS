@@ -4,12 +4,12 @@ from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from utils import validate_response, bytes_to_string, string_to_bytes, json_payload
 
 requests.packages.urllib3.disable_warnings()
-SERVER_IP = "log" # for prod
-#SERVER_IP = "localhost:8000"  # for dev
+SERVER_IP = "log"  # for prod
+SERVER_IP = "localhost:8000"  # for dev
 session_token = ""
 
 
-def api_url(route: str): return f"https://{SERVER_IP}/api/{route}"
+def api_url(route: str): return f"http://{SERVER_IP}/api/{route}"
 
 
 def register(username: str, password: str, pubkey: RSAPublicKey) -> dict:
